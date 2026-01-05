@@ -5,7 +5,6 @@ from typing import Optional, Tuple, Union
 
 try:
     from sksurv.metrics import integrated_brier_score as sksurv_ibs
-    from sksurv.functions import StepFunction
     HAS_SKSURV = True
 except ImportError:
     HAS_SKSURV = False
@@ -112,12 +111,6 @@ def _calculate_ibs_sksurv(
         dtype=[("event", bool), ("time", float)],
     )
 
-    # Create step functions for each sample
-    step_functions = []
-    for i in range(survival_functions.shape[0]):
-        sf = StepFunction(time_points, survival_functions[i])
-        step_functions.append(sf)
-
     # Determine evaluation times
     if times is None:
         event_times_with_events = event_times_test[event_indicators_test == 1]
@@ -134,8 +127,20 @@ def _calculate_ibs_sksurv(
     if len(times) == 0:
         return np.nan
 
+    # Interpolate survival functions at evaluation times
+    # sksurv expects shape (n_samples, n_times)
+    n_samples = survival_functions.shape[0]
+    n_times = len(times)
+    estimate = np.zeros((n_samples, n_times))
+
+    for i, t in enumerate(times):
+        # Find the index in time_points closest to t
+        idx = np.searchsorted(time_points, t)
+        idx = min(idx, len(time_points) - 1)
+        estimate[:, i] = survival_functions[:, idx]
+
     try:
-        ibs = sksurv_ibs(train_struct, test_struct, step_functions, times)
+        ibs = sksurv_ibs(train_struct, test_struct, estimate, times)
         return ibs
     except Exception:
         return np.nan

@@ -1,8 +1,8 @@
 {
   "$schema": "../schemas/experiment.json",
-  "experiment_id": "baseline_001",
-  "name": "Baseline Double Descent",
-  "description": "Standard Gaussian covariates, 30% censoring, width sweep",
+  "experiment_id": "regularized_001",
+  "name": "Regularized Double Descent",
+  "description": "Standard Gaussian covariates with L2 regularization (weight decay) to test if regularization mitigates double descent",
   "seed": 42,
   "data": {
     "name": "baseline",
@@ -18,7 +18,7 @@
     "depths": [2],
     "activation": "relu",
     "dropout": 0.0,
-    "weight_decay": 0.0
+    "weight_decay": 0.01
   },
   "training": {
     "epochs": 10000,

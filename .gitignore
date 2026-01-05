@@ -210,6 +210,18 @@ __marimo__/
 outputs/experiments/*/
 outputs/figures/*.png
 outputs/figures/*.pdf
+outputs/paper_figures/
+
+# LaTeX build artifacts
+manuscript/*.aux
+manuscript/*.bbl
+manuscript/*.blg
+manuscript/*.out
+manuscript/*.log
+manuscript/*.synctex.gz
+
+# Manuscript figures (regenerable from scripts/)
+manuscript/figures/
 
 # TensorBoard logs
 tensorboard/
