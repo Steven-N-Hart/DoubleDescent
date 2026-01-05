@@ -156,8 +156,10 @@ def breslow_estimator(
             return time_points, np.zeros(len(time_points))
         return np.array([0.0]), np.array([0.0])
 
-    # Compute exp(risk_scores) once
-    exp_risks = np.exp(risk_scores)
+    # For numerical stability, center risk scores before exp
+    # This doesn't change the hazard ratios, just prevents overflow
+    risk_scores_centered = risk_scores - np.max(risk_scores)
+    exp_risks = np.exp(risk_scores_centered)
 
     # Compute cumulative hazard at each event time
     cumulative_hazard = np.zeros(len(event_times_unique))
@@ -217,13 +219,15 @@ def compute_survival_function(
     baseline_cumulative_hazard = np.asarray(baseline_cumulative_hazard).ravel()
 
     # S(t|x) = exp(-H_0(t) * exp(risk_score))
-    # Compute for all samples at all time points
-    exp_risks = np.exp(risk_scores)  # (n_samples,)
+    # For numerical stability, compute in log space when possible
+    # Center risk scores to prevent overflow in exp
+    risk_scores_centered = risk_scores - np.max(risk_scores)
+    exp_risks = np.exp(risk_scores_centered)  # (n_samples,)
 
     # Outer product: (n_samples, n_time_points)
     cumulative_hazards = np.outer(exp_risks, baseline_cumulative_hazard)
 
-    # Survival function
-    survival_functions = np.exp(-cumulative_hazards)
+    # Survival function - clip to avoid numerical issues
+    survival_functions = np.exp(-np.clip(cumulative_hazards, 0, 700))
 
     return survival_functions
