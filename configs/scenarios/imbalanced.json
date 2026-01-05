@@ -1,0 +1,13 @@
+{
+  "$schema": "../schemas/scenario.json",
+  "name": "imbalanced",
+  "description": "Imbalanced scenario with Gaussian covariates and 90% censoring (rare events)",
+  "n_samples": 1000,
+  "n_features": 20,
+  "n_predictive": 10,
+  "covariate_type": "gaussian",
+  "censoring_rate": 0.9,
+  "weibull_scale": 0.5,
+  "weibull_shape": 2.0,
+  "coefficient_range": [-1.0, 1.0]
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "../schemas/scenario.json",
+  "name": "skewed",
+  "description": "Skewed scenario with log-normal covariates (biomarker-like) and 30% censoring",
+  "n_samples": 1000,
+  "n_features": 20,
+  "n_predictive": 10,
+  "covariate_type": "lognormal",
+  "censoring_rate": 0.3,
+  "weibull_scale": 0.5,
+  "weibull_shape": 2.0,
+  "coefficient_range": [-1.0, 1.0]
+}

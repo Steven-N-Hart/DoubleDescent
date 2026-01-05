@@ -1,0 +1,719 @@
+% ============================================================================
+% REFERENCES FOR: The Survival Double Descent
+% ============================================================================
+%
+% Organization:
+%   1. Double Descent - Foundational Theory
+%   2. Double Descent - Deep Learning Empirical Studies
+%   3. Survival Analysis - Classical Methods
+%   4. Survival Analysis - Deep Learning
+%   5. Evaluation Metrics
+%   6. Synthetic Data Generation
+%   7. Statistical Learning Theory
+%   8. Clinical/Biomedical Applications
+%
+% ============================================================================
+
+% ============================================================================
+% 1. DOUBLE DESCENT - FOUNDATIONAL THEORY
+% ============================================================================
+
+@article{belkin2019reconciling,
+  title={Reconciling modern machine-learning practice and the classical bias--variance trade-off},
+  author={Belkin, Mikhail and Hsu, Daniel and Ma, Siyuan and Mandal, Soumik},
+  journal={Proceedings of the National Academy of Sciences},
+  volume={116},
+  number={32},
+  pages={15849--15854},
+  year={2019},
+  publisher={National Academy of Sciences},
+  doi={10.1073/pnas.1903070116}
+}
+
+@article{nakkiran2021deep,
+  title={Deep double descent: Where bigger models and more data can hurt},
+  author={Nakkiran, Preetum and Kaplun, Gal and Bansal, Yamini and Yang, Tristan and Barak, Boaz and Sutskever, Ilya},
+  journal={Journal of Statistical Mechanics: Theory and Experiment},
+  volume={2021},
+  number={12},
+  pages={124003},
+  year={2021},
+  publisher={IOP Publishing},
+  doi={10.1088/1742-5468/ac3a74}
+}
+
+@inproceedings{nakkiran2020optimal,
+  title={Optimal regularization can mitigate double descent},
+  author={Nakkiran, Preetum and Venkat, Prayaag and Kakade, Sham and Ma, Tengyu},
+  booktitle={International Conference on Learning Representations},
+  year={2020}
+}
+
+@article{bartlett2020benign,
+  title={Benign overfitting in linear regression},
+  author={Bartlett, Peter L and Long, Philip M and Lugosi, G{\'a}bor and Tsigler, Alexander},
+  journal={Proceedings of the National Academy of Sciences},
+  volume={117},
+  number={48},
+  pages={30063--30070},
+  year={2020},
+  publisher={National Academy of Sciences},
+  doi={10.1073/pnas.1907378117}
+}
+
+@inproceedings{hastie2022surprises,
+  title={Surprises in high-dimensional ridgeless least squares interpolation},
+  author={Hastie, Trevor and Montanari, Andrea and Rosset, Saharon and Tibshirani, Ryan J},
+  booktitle={Annals of Statistics},
+  volume={50},
+  number={2},
+  pages={949--986},
+  year={2022}
+}
+
+@article{dar2021subspace,
+  title={A farewell to the bias-variance tradeoff? An overview of the main results},
+  author={Dar, Yehuda and Muthukumar, Vidya and Baraniuk, Richard G},
+  journal={arXiv preprint arXiv:2109.02355},
+  year={2021}
+}
+
+@article{mei2022generalization,
+  title={The generalization error of random features regression: Precise asymptotics and the double descent curve},
+  author={Mei, Song and Montanari, Andrea},
+  journal={Communications on Pure and Applied Mathematics},
+  volume={75},
+  number={4},
+  pages={667--766},
+  year={2022},
+  publisher={Wiley Online Library}
+}
+
+@inproceedings{d2020triple,
+  title={Triple descent and the two kinds of overfitting: Where \& why do they appear?},
+  author={d'Ascoli, St{\'e}phane and Refinetti, Maria and Biroli, Giulio and Krzakala, Florent},
+  booktitle={Advances in Neural Information Processing Systems},
+  volume={33},
+  pages={3058--3069},
+  year={2020}
+}
+
+% ============================================================================
+% 2. DOUBLE DESCENT - DEEP LEARNING EMPIRICAL STUDIES
+% ============================================================================
+
+@article{zhang2021understanding,
+  title={Understanding deep learning (still) requires rethinking generalization},
+  author={Zhang, Chiyuan and Bengio, Samy and Hardt, Moritz and Recht, Benjamin and Vinyals, Oriol},
+  journal={Communications of the ACM},
+  volume={64},
+  number={3},
+  pages={107--115},
+  year={2021},
+  publisher={ACM New York, NY, USA}
+}
+
+@article{feldman2020neural,
+  title={What neural networks memorize and why: Discovering the long tail via influence estimation},
+  author={Feldman, Vitaly and Zhang, Chiyuan},
+  journal={Advances in Neural Information Processing Systems},
+  volume={33},
+  pages={2881--2891},
+  year={2020}
+}
+
+@inproceedings{yang2020rethinking,
+  title={Rethinking bias-variance trade-off for generalization of neural networks},
+  author={Yang, Zitong and Yu, Yaodong and You, Chong and Steinhardt, Jacob and Ma, Yi},
+  booktitle={International Conference on Machine Learning},
+  pages={10767--10777},
+  year={2020},
+  organization={PMLR}
+}
+
+@article{advani2020high,
+  title={High-dimensional dynamics of generalization error in neural networks},
+  author={Advani, Madhu S and Saxe, Andrew M and Sompolinsky, Haim},
+  journal={Neural Networks},
+  volume={132},
+  pages={428--446},
+  year={2020},
+  publisher={Elsevier}
+}
+
+@article{schaeffer2023double,
+  title={Double descent demystified: Identifying, interpreting \& ablating the sources of a deep learning puzzle},
+  author={Schaeffer, Rylan and Khona, Mikail and Robertson, Zachary and Boopathy, Akhilan and Pistunova, Kateryna and Rocks, Jason W and Fiete, Ila Rani and Koyejo, Oluwasanmi},
+  journal={arXiv preprint arXiv:2303.14151},
+  year={2023}
+}
+
+% ============================================================================
+% 3. SURVIVAL ANALYSIS - CLASSICAL METHODS
+% ============================================================================
+
+@article{cox1972regression,
+  title={Regression models and life-tables},
+  author={Cox, David R},
+  journal={Journal of the Royal Statistical Society: Series B (Methodological)},
+  volume={34},
+  number={2},
+  pages={187--202},
+  year={1972},
+  publisher={Wiley Online Library}
+}
+
+@book{harrell2015regression,
+  title={Regression modeling strategies: with applications to linear models, logistic and ordinal regression, and survival analysis},
+  author={Harrell, Frank E},
+  year={2015},
+  publisher={Springer},
+  edition={2nd}
+}
+
+@book{kalbfleisch2002statistical,
+  title={The statistical analysis of failure time data},
+  author={Kalbfleisch, John D and Prentice, Ross L},
+  year={2002},
+  publisher={John Wiley \& Sons},
+  edition={2nd}
+}
+
+@book{klein2003survival,
+  title={Survival analysis: techniques for censored and truncated data},
+  author={Klein, John P and Moeschberger, Melvin L},
+  year={2003},
+  publisher={Springer},
+  edition={2nd}
+}
+
+@article{tibshirani1996regression,
+  title={Regression shrinkage and selection via the lasso},
+  author={Tibshirani, Robert},
+  journal={Journal of the Royal Statistical Society: Series B (Methodological)},
+  volume={58},
+  number={1},
+  pages={267--288},
+  year={1996},
+  publisher={Wiley Online Library}
+}
+
+@article{tibshirani1997lasso,
+  title={The lasso method for variable selection in the {Cox} model},
+  author={Tibshirani, Robert},
+  journal={Statistics in Medicine},
+  volume={16},
+  number={4},
+  pages={385--395},
+  year={1997},
+  publisher={Wiley Online Library}
+}
+
+@article{simon2011regularization,
+  title={Regularization paths for {Cox}'s proportional hazards model via coordinate descent},
+  author={Simon, Noah and Friedman, Jerome and Hastie, Trevor and Tibshirani, Rob},
+  journal={Journal of Statistical Software},
+  volume={39},
+  number={5},
+  pages={1--13},
+  year={2011},
+  publisher={NIH Public Access}
+}
+
+% ============================================================================
+% 4. SURVIVAL ANALYSIS - DEEP LEARNING
+% ============================================================================
+
+@article{liu2025understanding,
+  title={Understanding overparametrization in survival models through double-descent},
+  author={Liu, Yin and Cai, Jianwen and Li, Didong},
+  journal={arXiv preprint arXiv:2512.12463},
+  year={2025}
+}
+
+@article{katzman2018deepsurv,
+  title={{DeepSurv}: personalized treatment recommender system using a {Cox} proportional hazards deep neural network},
+  author={Katzman, Jared L and Shaham, Uri and Cloninger, Alexander and Bates, Jonathan and Jiang, Tingting and Kluger, Yuval},
+  journal={BMC Medical Research Methodology},
+  volume={18},
+  number={1},
+  pages={24},
+  year={2018},
+  publisher={BioMed Central}
+}
+
+@article{lee2018deephit,
+  title={{DeepHit}: A deep learning approach to survival analysis with competing risks},
+  author={Lee, Changhee and Zame, William R and Yoon, Jinsung and van der Schaar, Mihaela},
+  journal={Proceedings of the AAAI Conference on Artificial Intelligence},
+  volume={32},
+  number={1},
+  year={2018}
+}
+
+@article{kvamme2019time,
+  title={Time-to-event prediction with neural networks and {Cox} regression},
+  author={Kvamme, H{\aa}vard and Borgan, {\O}rnulf and Scheel, Ida},
+  journal={Journal of Machine Learning Research},
+  volume={20},
+  number={129},
+  pages={1--30},
+  year={2019}
+}
+
+@article{gensheimer2019scalable,
+  title={A scalable discrete-time survival model for neural networks},
+  author={Gensheimer, Michael F and Narasimhan, Balasubramanian},
+  journal={PeerJ},
+  volume={7},
+  pages={e6257},
+  year={2019},
+  publisher={PeerJ Inc.}
+}
+
+@article{faraggi1995neural,
+  title={A neural network model for survival data},
+  author={Faraggi, David and Simon, Richard},
+  journal={Statistics in Medicine},
+  volume={14},
+  number={1},
+  pages={73--82},
+  year={1995},
+  publisher={Wiley Online Library}
+}
+
+@article{wiegrebe2024deep,
+  title={Deep learning for survival analysis: A review},
+  author={Wiegrebe, Simon and Kopper, Philipp and Sonabend, Raphael and Bischl, Bernd and Bender, Andreas},
+  journal={Artificial Intelligence Review},
+  volume={57},
+  number={3},
+  pages={65},
+  year={2024},
+  publisher={Springer}
+}
+
+@article{wang2019machine,
+  title={Machine learning for survival analysis: A survey},
+  author={Wang, Ping and Li, Yan and Reddy, Chandan K},
+  journal={ACM Computing Surveys},
+  volume={51},
+  number={6},
+  pages={1--36},
+  year={2019},
+  publisher={ACM New York, NY, USA}
+}
+
+@article{nagpal2021deep,
+  title={Deep survival machines: Fully parametric survival regression and representation learning for censored data with competing risks},
+  author={Nagpal, Chirag and Li, Xinyi and Dubrawski, Artur},
+  journal={IEEE Journal of Biomedical and Health Informatics},
+  volume={25},
+  number={8},
+  pages={3163--3175},
+  year={2021},
+  publisher={IEEE}
+}
+
+@inproceedings{hu2021transformer,
+  title={Transformer-based deep survival analysis},
+  author={Hu, Shiyun and Hyland, Stephanie L and Hospedales, Timothy M},
+  booktitle={Survival Prediction-Algorithms, Challenges and Applications},
+  pages={132--148},
+  year={2021},
+  organization={PMLR}
+}
+
+% ============================================================================
+% 5. EVALUATION METRICS
+% ============================================================================
+
+@article{harrell1996multivariable,
+  title={Multivariable prognostic models: issues in developing models, evaluating assumptions and adequacy, and measuring and reducing errors},
+  author={Harrell, Frank E and Lee, Kerry L and Mark, Daniel B},
+  journal={Statistics in Medicine},
+  volume={15},
+  number={4},
+  pages={361--387},
+  year={1996},
+  publisher={Wiley Online Library}
+}
+
+@article{harrell1982evaluating,
+  title={Evaluating the yield of medical tests},
+  author={Harrell, Frank E and Califf, Robert M and Pryor, David B and Lee, Kerry L and Rosati, Robert A},
+  journal={JAMA},
+  volume={247},
+  number={18},
+  pages={2543--2546},
+  year={1982},
+  publisher={American Medical Association}
+}
+
+@article{hartman2023pitfalls,
+  title={Pitfalls of the concordance index for survival outcomes},
+  author={Hartman, Nicholas and Kim, Sehee and He, Kevin and Kalbfleisch, John D},
+  journal={Statistics in Medicine},
+  volume={42},
+  number={13},
+  pages={2179--2190},
+  year={2023},
+  publisher={Wiley Online Library}
+}
+
+@article{uno2011c,
+  title={On the {C}-statistics for evaluating overall adequacy of risk prediction procedures with censored survival data},
+  author={Uno, Hajime and Cai, Tianxi and Pencina, Michael J and D'Agostino, Ralph B and Wei, Lee-Jen},
+  journal={Statistics in Medicine},
+  volume={30},
+  number={10},
+  pages={1105--1117},
+  year={2011},
+  publisher={Wiley Online Library}
+}
+
+@article{graf1999assessment,
+  title={Assessment and comparison of prognostic classification schemes for survival data},
+  author={Graf, Erika and Schmoor, Claudia and Sauerbrei, Willi and Schumacher, Martin},
+  journal={Statistics in Medicine},
+  volume={18},
+  number={17-18},
+  pages={2529--2545},
+  year={1999},
+  publisher={Wiley Online Library}
+}
+
+@article{gerds2006consistent,
+  title={Consistent estimation of the expected {Brier} score in general survival models with right-censored event times},
+  author={Gerds, Thomas A and Schumacher, Martin},
+  journal={Biometrical Journal},
+  volume={48},
+  number={6},
+  pages={1029--1040},
+  year={2006},
+  publisher={Wiley Online Library}
+}
+
+@article{blanche2015quantifying,
+  title={Quantifying and comparing dynamic predictive accuracy of joint models for longitudinal marker and time-to-event in presence of censoring and competing risks},
+  author={Blanche, Paul and Proust-Lima, C{\'e}cile and Loubere, Laurent and Berr, Claudine and Dartigues, Jean-Fran{\c{c}}ois and Jacqmin-Gadda, H{\'e}l{\`e}ne},
+  journal={Biometrics},
+  volume={71},
+  number={1},
+  pages={102--113},
+  year={2015},
+  publisher={Wiley Online Library}
+}
+
+@article{heagerty2005survival,
+  title={Survival model predictive accuracy and {ROC} curves},
+  author={Heagerty, Patrick J and Zheng, Yingye},
+  journal={Biometrics},
+  volume={61},
+  number={1},
+  pages={92--105},
+  year={2005},
+  publisher={Wiley Online Library}
+}
+
+@article{steyerberg2010assessing,
+  title={Assessing the performance of prediction models: a framework for some traditional and novel measures},
+  author={Steyerberg, Ewout W and Vickers, Andrew J and Cook, Nancy R and Gerds, Thomas and Gonen, Mithat and Obuchowski, Nancy and Pencina, Michael J and Kattan, Michael W},
+  journal={Epidemiology},
+  volume={21},
+  number={1},
+  pages={128--138},
+  year={2010},
+  publisher={LWW}
+}
+
+@article{van2016calibration,
+  title={Calibration: the {Achilles} heel of predictive analytics},
+  author={Van Calster, Ben and Nieboer, Daan and Vergouwe, Yvonne and De Cock, Bavo and Pencina, Michael J and Steyerberg, Ewout W},
+  journal={BMC Medicine},
+  volume={14},
+  number={1},
+  pages={230},
+  year={2016},
+  publisher={BioMed Central}
+}
+
+@article{austin2020brier,
+  title={The {Integrated Calibration Index} ({ICI}) and related metrics for quantifying the calibration of logistic regression models},
+  author={Austin, Peter C and Steyerberg, Ewout W},
+  journal={Statistics in Medicine},
+  volume={39},
+  number={16},
+  pages={2714--2742},
+  year={2020},
+  publisher={Wiley Online Library}
+}
+
+% ============================================================================
+% 6. SYNTHETIC DATA GENERATION
+% ============================================================================
+
+@article{bender2005generating,
+  title={Generating survival times to simulate {Cox} proportional hazards models},
+  author={Bender, Ralf and Augustin, Thomas and Blettner, Maria},
+  journal={Statistics in Medicine},
+  volume={24},
+  number={11},
+  pages={1713--1723},
+  year={2005},
+  publisher={Wiley Online Library}
+}
+
+@article{austin2012generating,
+  title={Generating survival times to simulate {Cox} proportional hazards models with time-varying covariates},
+  author={Austin, Peter C},
+  journal={Statistics in Medicine},
+  volume={31},
+  number={29},
+  pages={3946--3958},
+  year={2012},
+  publisher={Wiley Online Library}
+}
+
+@article{crowther2013simulating,
+  title={Simulating biologically plausible complex survival data},
+  author={Crowther, Michael J and Lambert, Paul C},
+  journal={Statistics in Medicine},
+  volume={32},
+  number={23},
+  pages={4118--4134},
+  year={2013},
+  publisher={Wiley Online Library}
+}
+
+@article{sylvestre2008comparison,
+  title={Comparison of algorithms to generate event times conditional on time-dependent covariates},
+  author={Sylvestre, Marie-Pierre and Abrahamowicz, Michal},
+  journal={Statistics in Medicine},
+  volume={27},
+  number={14},
+  pages={2618--2634},
+  year={2008},
+  publisher={Wiley Online Library}
+}
+
+@article{nelsen2006introduction,
+  title={An introduction to copulas},
+  author={Nelsen, Roger B},
+  journal={Springer Series in Statistics},
+  year={2006},
+  publisher={Springer}
+}
+
+@article{sklar1959fonctions,
+  title={Fonctions de r{\'e}partition {\`a} n dimensions et leurs marges},
+  author={Sklar, Abe},
+  journal={Publications de l'Institut de statistique de l'Universit{\'e} de Paris},
+  volume={8},
+  pages={229--231},
+  year={1959}
+}
+
+% ============================================================================
+% 7. STATISTICAL LEARNING THEORY
+% ============================================================================
+
+@book{hastie2009elements,
+  title={The elements of statistical learning: data mining, inference, and prediction},
+  author={Hastie, Trevor and Tibshirani, Robert and Friedman, Jerome H},
+  year={2009},
+  publisher={Springer},
+  edition={2nd}
+}
+
+@book{vapnik1998statistical,
+  title={Statistical learning theory},
+  author={Vapnik, Vladimir N},
+  year={1998},
+  publisher={Wiley New York}
+}
+
+@book{bishop2006pattern,
+  title={Pattern recognition and machine learning},
+  author={Bishop, Christopher M},
+  year={2006},
+  publisher={Springer}
+}
+
+@article{geman1992neural,
+  title={Neural networks and the bias/variance dilemma},
+  author={Geman, Stuart and Bienenstock, Elie and Doursat, Ren{\'e}},
+  journal={Neural Computation},
+  volume={4},
+  number={1},
+  pages={1--58},
+  year={1992},
+  publisher={MIT Press}
+}
+
+@article{breiman2001random,
+  title={Random forests},
+  author={Breiman, Leo},
+  journal={Machine Learning},
+  volume={45},
+  number={1},
+  pages={5--32},
+  year={2001},
+  publisher={Springer}
+}
+
+% ============================================================================
+% 8. CLINICAL/BIOMEDICAL APPLICATIONS
+% ============================================================================
+
+@article{curtis2012genomic,
+  title={The genomic and transcriptomic architecture of 2,000 breast tumours reveals novel subgroups},
+  author={Curtis, Christina and Shah, Sohrab P and Chin, Suet-Feung and Turashvili, Gulisa and Rueda, Oscar M and Dunning, Mark J and Speed, Doug and Lynch, Andy G and Samarajiwa, Shamith and Yuan, Yinyin and others},
+  journal={Nature},
+  volume={486},
+  number={7403},
+  pages={346--352},
+  year={2012},
+  publisher={Nature Publishing Group}
+}
+
+@article{knaus1995support,
+  title={The {SUPPORT} prognostic model: Objective estimates of survival for seriously ill hospitalized adults},
+  author={Knaus, William A and Harrell, Frank E and Lynn, Joanne and Goldman, Lee and Phillips, Russell S and Connors, Alfred F and Dawson, Neal V and Fulkerson, William J and Califf, Robert M and Desbiens, Norman and others},
+  journal={Annals of Internal Medicine},
+  volume={122},
+  number={3},
+  pages={191--203},
+  year={1995},
+  publisher={American College of Physicians}
+}
+
+@article{ishwaran2008random,
+  title={Random survival forests},
+  author={Ishwaran, Hemant and Kogalur, Udaya B and Blackstone, Eugene H and Lauer, Michael S},
+  journal={The Annals of Applied Statistics},
+  volume={2},
+  number={3},
+  pages={841--860},
+  year={2008},
+  publisher={Institute of Mathematical Statistics}
+}
+
+@article{peduzzi1996simulation,
+  title={A simulation study of the number of events per variable in logistic regression analysis},
+  author={Peduzzi, Peter and Concato, John and Kemper, Elizabeth and Holford, Theodore R and Feinstein, Alvan R},
+  journal={Journal of Clinical Epidemiology},
+  volume={49},
+  number={12},
+  pages={1373--1379},
+  year={1996},
+  publisher={Elsevier}
+}
+
+@article{vittinghoff2007relaxing,
+  title={Relaxing the rule of ten events per variable in logistic and {Cox} regression},
+  author={Vittinghoff, Eric and McCulloch, Charles E},
+  journal={American Journal of Epidemiology},
+  volume={165},
+  number={6},
+  pages={710--718},
+  year={2007},
+  publisher={Oxford University Press}
+}
+
+@article{riley2019minimum,
+  title={Minimum sample size for developing a multivariable prediction model: Part {II} -- binary and time-to-event outcomes},
+  author={Riley, Richard D and Snell, Kym IE and Ensor, Joie and Burke, Danielle L and Harrell Jr, Frank E and Moons, Karel GM and Collins, Gary S},
+  journal={Statistics in Medicine},
+  volume={38},
+  number={7},
+  pages={1276--1296},
+  year={2019},
+  publisher={Wiley Online Library}
+}
+
+@article{van2019sample,
+  title={Sample size considerations and predictive performance of multinomial logistic prediction models},
+  author={van Smeden, Maarten and de Groot, Joris AH and Moons, Karel GM and Riley, Richard D and Reitsma, Johannes B},
+  journal={Statistics in Medicine},
+  volume={38},
+  number={9},
+  pages={1601--1619},
+  year={2019},
+  publisher={Wiley Online Library}
+}
+
+@article{christodoulou2019systematic,
+  title={A systematic review shows no performance benefit of machine learning over logistic regression for clinical prediction models},
+  author={Christodoulou, Evangelia and Ma, Jie and Collins, Gary S and Steyerberg, Ewout W and Verbakel, Jan Y and Van Calster, Ben},
+  journal={Journal of Clinical Epidemiology},
+  volume={110},
+  pages={12--22},
+  year={2019},
+  publisher={Elsevier}
+}
+
+@article{steyerberg2019clinical,
+  title={Clinical prediction models: a practical approach to development, validation, and updating},
+  author={Steyerberg, Ewout W},
+  journal={Statistics for Biology and Health},
+  year={2019},
+  publisher={Springer},
+  edition={2nd}
+}
+
+% ============================================================================
+% ADDITIONAL REFERENCES
+% ============================================================================
+
+@article{veselý2026double,
+  title={On the presence of double-descent in deep reinforcement learning},
+  author={Vesel{\'y}, Viktor and Todorov, Aleksandar and Sabatelli, Matthia},
+  journal={Proceedings of the Northern Lights Deep Learning Conference},
+  year={2026}
+}
+
+@article{kingma2015adam,
+  title={Adam: A method for stochastic optimization},
+  author={Kingma, Diederik P and Ba, Jimmy},
+  journal={International Conference on Learning Representations},
+  year={2015}
+}
+
+@article{srivastava2014dropout,
+  title={Dropout: a simple way to prevent neural networks from overfitting},
+  author={Srivastava, Nitish and Hinton, Geoffrey and Krizhevsky, Alex and Sutskever, Ilya and Salakhutdinov, Ruslan},
+  journal={The Journal of Machine Learning Research},
+  volume={15},
+  number={1},
+  pages={1929--1958},
+  year={2014},
+  publisher={JMLR.org}
+}
+
+@inproceedings{glorot2010understanding,
+  title={Understanding the difficulty of training deep feedforward neural networks},
+  author={Glorot, Xavier and Bengio, Yoshua},
+  booktitle={Proceedings of the Thirteenth International Conference on Artificial Intelligence and Statistics},
+  pages={249--256},
+  year={2010},
+  organization={JMLR Workshop and Conference Proceedings}
+}
+
+@article{paszke2019pytorch,
+  title={{PyTorch}: An imperative style, high-performance deep learning library},
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  journal={Advances in Neural Information Processing Systems},
+  volume={32},
+  year={2019}
+}
+
+@article{polsterl2020scikit,
+  title={scikit-survival: A library for time-to-event analysis built on top of scikit-learn},
+  author={P{\"o}lsterl, Sebastian},
+  journal={Journal of Machine Learning Research},
+  volume={21},
+  number={212},
+  pages={1--6},
+  year={2020}
+}

@@ -1,0 +1,283 @@
+\documentclass[12pt,a4paper]{article}
+
+% ============================================================================
+% PACKAGES
+% ============================================================================
+
+% Typography and Layout
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\doublespacing
+
+% Mathematics
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{bm}
+
+% Graphics and Tables
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{float}
+
+% References and Citations (author-year style for JASA)
+\usepackage[authoryear,round]{natbib}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+% Supplementary
+\usepackage{xcolor}
+
+% ============================================================================
+% CUSTOM COMMANDS
+% ============================================================================
+\newcommand{\cindex}{C\text{-index}}
+\newcommand{\ibs}{\text{IBS}}
+\newcommand{\nll}{\text{NLL}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathcal{N}}
+\newcommand{\bx}{\bm{x}}
+\newcommand{\bbeta}{\bm{\beta}}
+\newcommand{\btheta}{\bm{\theta}}
+
+% ============================================================================
+% TITLE AND AUTHORS
+% ============================================================================
+
+\title{The Survival Double Descent: Generalization Dynamics of Deep Neural Networks in Time-to-Event Analysis}
+
+\author{Steven N. Hart, PhD, ACHIP\thanks{Steven N. Hart is Associate Professor, Department of Laboratory Medicine and Pathology, Mayo Clinic, Rochester, MN 55905 (E-mail: hart.steven@mayo.edu).}}
+
+\date{}
+
+% ============================================================================
+% DOCUMENT
+% ============================================================================
+
+\begin{document}
+
+\maketitle
+
+% ----------------------------------------------------------------------------
+% ABSTRACT
+% ----------------------------------------------------------------------------
+\begin{abstract}
+Double descent upends classical intuitions about overfitting. Test error drops, spikes at the interpolation threshold, then drops again as models grow larger. The phenomenon is well-documented in classification and regression. Survival analysis is different. Censoring hides true event times. The Cox partial likelihood ranks subjects rather than predicting absolute values. Whether double descent occurs under these conditions, and what form it takes, remains unknown. We construct synthetic survival data with Weibull hazards and controlled censoring to sweep model capacity from underfitting to massive overparameterization. Three questions drive the experiments: Does the interpolation peak shift to $P \approx N_{\text{events}}$ rather than $P \approx N$? Does the concordance index miss overfitting that the integrated Brier score catches? Do skewed covariates and high-cardinality categoricals worsen the spike? The answers matter. Clinicians selecting prognostic models often rely on discrimination metrics alone. If those metrics stay flat while calibration collapses, current practices may favor unstable models.
+\end{abstract}
+
+\clearpage
+
+% ----------------------------------------------------------------------------
+% 1. INTRODUCTION
+% ----------------------------------------------------------------------------
+\section{Introduction}
+
+The bias-variance trade-off has anchored statistical learning theory for decades \citep{hastie2009elements}. Increasing model complexity reduces bias while increasing variance; optimal generalization requires balancing these competing forces. This principle motivated the development of model selection criteria such as cross-validation and regularization methods \citep{tibshirani1996regression}.
+
+Deep learning has challenged this framework. Networks with billions of parameters generalize well despite $p \gg n$ \citep{zhang2021understanding}. \citet{belkin2019reconciling} termed this the double descent phenomenon; \citet{nakkiran2021deep} documented it across architectures and datasets. The pattern proceeds in three stages. Small models underfit. At the interpolation threshold, where capacity just suffices to memorize training data, test error peaks sharply. The model fits noise exactly, but with a unique, highly oscillatory solution. Beyond this threshold, test error decreases again, often falling below the classical minimum. Gradient descent favors minimum-norm solutions when infinitely many interpolants exist \citep{bartlett2020benign}, and this implicit regularization enables generalization in overparameterized models.
+
+Survival analysis remains outside this literature. Neural network methods for time-to-event data, including DeepSurv \citep{katzman2018deepsurv}, DeepHit \citep{lee2018deephit}, and related architectures, now appear routinely in clinical research \citep{wiegrebe2024deep}. However, no systematic investigation has established whether double descent occurs in this setting. \citet{liu2025understanding} provide preliminary theory suggesting it does, though possibly in modified form: the second descent may be attenuated, and benign overfitting, the phenomenon where interpolating models generalize well despite fitting training noise, may not fully materialize.
+
+Several features of survival analysis may alter double descent dynamics. Censoring reduces available information: a patient lost to follow-up contributes only a lower bound on survival time, not a precise measurement. The Cox partial likelihood \citep{cox1972regression} optimizes rankings rather than predictions, and extreme risk scores ($\hat{\eta} \to \pm\infty$) maximize the likelihood for separable data. These properties produce an unusual loss geometry. Whether the interpolation threshold depends on total sample size $N$ or on the number of observed events $N_{\text{events}}$ remains an open question.
+
+Evaluation metrics introduce additional complexity. The concordance index \citep{harrell1996multivariable} measures discrimination, quantifying a model's ability to rank patients by risk. It is invariant to monotonic transformations: a model predicting risk scores of $-1000$ and $+1000$ achieves perfect concordance if the ranking is correct. The integrated Brier score \citep{graf1999assessment} measures calibration and penalizes miscalibrated survival probabilities. These metrics may diverge at the interpolation threshold, with concordance remaining stable while calibration deteriorates. If clinicians select models based on discrimination alone (a common practice; see \citealt{hartman2023pitfalls}), they risk choosing overconfident, unstable predictors.
+
+This paper addresses four questions. First, does double descent occur in deep Cox models? Second, is the interpolation peak governed by $N$ or $N_{\text{events}}$? Third, do discrimination and calibration metrics diverge near the threshold? Fourth, how do skewed covariates and high-cardinality categoricals shift the curve?
+
+We investigate these questions through simulation. Synthetic data permit systematic capacity sweeps, precise noise control, and verification against known ground truth. The experiments span Gaussian and log-normal covariates, low and extreme censoring rates, and categorical features with up to 100 levels. Models are trained without regularization to expose the double descent curve; parallel experiments with weight decay characterize how standard regularization modifies the pattern.
+
+These questions have practical implications. Survival models inform treatment decisions, resource allocation, and patient counseling \citep{harrell2015regression}. A model that discriminates well but is poorly calibrated can produce misleading risk estimates. Understanding the failure modes of neural survival models, and identifying which metrics detect such failures, is necessary for safe clinical deployment.
+
+% ----------------------------------------------------------------------------
+% 2. BACKGROUND
+% ----------------------------------------------------------------------------
+\section{Background}
+
+\subsection{Double Descent Mechanics}
+
+Consider standard regression with target $y = f^*(\bx) + \epsilon$ and noise variance $\sigma^2$. The expected test error decomposes as
+\begin{equation}
+    \E[(y - \hat{f}(\bx))^2] = \text{Bias}^2[\hat{f}(\bx)] + \text{Var}[\hat{f}(\bx)] + \sigma^2.
+\end{equation}
+Classical theory predicts that bias decreases with model capacity while variance increases, with optimal complexity achieving the minimum of their sum.
+
+The interpolation threshold disrupts this picture \citep{belkin2019reconciling}. When the number of parameters equals the number of effective constraints, a unique solution interpolates the training data. This solution must pass through every training point, including noise, producing high variance and a peak in test error.
+
+Beyond this threshold, infinitely many interpolating solutions exist. Gradient descent from small initialization converges to the minimum-norm solution \citep{bartlett2020benign}. Smaller weights correspond to smoother functions, and test error decreases.
+
+\subsection{Survival Analysis Setup}
+
+For each subject $i$, we observe $(Y_i, \delta_i)$ where $Y_i = \min(T_i, C_i)$ is the observed time and $\delta_i = \mathbf{1}(T_i \leq C_i)$ is the event indicator. Here $T_i$ denotes the true event time and $C_i$ the censoring time. Censored observations ($\delta_i = 0$) provide only the constraint $T_i > C_i$.
+
+The Cox proportional hazards model \citep{cox1972regression} specifies the hazard function as $h(t | \bx_i) = h_0(t) \exp(\eta_i)$, where $\eta_i = f(\bx_i)$ is the log-risk score and $h_0(t)$ is an unspecified baseline hazard. DeepSurv \citep{katzman2018deepsurv} parameterizes $f$ using a neural network and estimates parameters by maximizing the partial likelihood:
+\begin{equation}
+    \mathcal{L}(\btheta) = \prod_{i: \delta_i = 1} \frac{\exp(\eta_i)}{\sum_{j \in \mathcal{R}_i} \exp(\eta_j)},
+\end{equation}
+where $\mathcal{R}_i = \{j : Y_j \geq Y_i\}$ is the risk set at time $Y_i$.
+
+Three properties of the Cox partial likelihood are relevant to double descent \citep{liu2025understanding}. The likelihood depends only on the ranking of risk scores within risk sets, not on their magnitudes. For separable data, the optimal weights diverge to $\pm\infty$. Censored observations contribute to risk sets but not to the likelihood product, reducing the effective sample size.
+
+\subsection{Evaluation Metrics}
+
+The concordance index \citep{harrell1996multivariable} is defined as
+\begin{equation}
+    C = P(\hat{\eta}_i > \hat{\eta}_j \mid T_i < T_j).
+\end{equation}
+This is a ranking metric, invariant to monotonic transformations of $\hat{\eta}$. Extreme but correctly-ordered predictions achieve high concordance.
+
+The Brier score at time $t$ \citep{graf1999assessment} is defined as
+\begin{equation}
+    \text{BS}(t) = \frac{1}{n} \sum_{i=1}^{n} \left[ \hat{S}(t | \bx_i) - \mathbf{1}(Y_i > t) \right]^2 \cdot w_i(t),
+\end{equation}
+where $w_i(t)$ are inverse probability of censoring weights \citep{gerds2006consistent}. The integrated Brier score averages over a time interval: $\text{IBS} = t_{\max}^{-1} \int_0^{t_{\max}} \text{BS}(t) \, dt$. Unlike concordance, the Brier score penalizes miscalibrated probability estimates.
+
+At the interpolation threshold, we hypothesize that concordance remains stable because correct rankings may persist even as risk score magnitudes become extreme. The integrated Brier score, however, should increase due to miscalibrated survival curves. Model selection based solely on concordance would fail to detect this deterioration.
+
+% ----------------------------------------------------------------------------
+% 3. METHODS
+% ----------------------------------------------------------------------------
+\section{Methods}
+
+\subsection{Data Generation}
+
+Real datasets lack the controlled conditions required to trace the double descent curve. We therefore generate synthetic survival data.
+
+Covariates are generated using a Gaussian copula. We draw $\bm{Z} \sim \N(\bm{0}, \bm{\Sigma})$ and transform marginals as follows: identity for Gaussian, exponentiation for log-normal, and quantile binning for categorical variables.
+
+Event times follow a Weibull-Cox model:
+\begin{equation}
+    h(t | \bx_i) = \lambda \nu t^{\nu - 1} \exp(\bbeta^\top \bx_i).
+\end{equation}
+Inverse transform sampling yields
+\begin{equation}
+    T_i = \left( \frac{-\ln(U)}{\lambda \exp(\bbeta^\top \bx_i)} \right)^{1/\nu}, \quad U \sim \text{Uniform}(0, 1).
+\end{equation}
+Ground truth is known exactly \citep{bender2005generating}.
+
+Censoring times follow an exponential distribution with rate $\lambda_c$ calibrated to achieve target censoring proportions. The observed data are $Y_i = \min(T_i, C_i)$ and $\delta_i = \mathbf{1}(T_i \leq C_i)$.
+
+\subsection{Scenarios}
+
+We consider four configurations (Table~\ref{tab:scenarios}). Scenario A uses Gaussian covariates with 30\% censoring as a baseline. Scenario B uses log-normal covariates to test whether leverage points amplify the interpolation peak. Scenario C includes five categorical features with 100 levels each to test threshold shifts from one-hot encoding. Scenario D uses 90\% censoring to test whether the peak location depends on $N_{\text{events}}$ rather than $N$.
+
+\begin{table}[ht]
+\centering
+\caption{Experimental scenarios.}
+\label{tab:scenarios}
+\begin{tabular}{llll}
+\toprule
+\textbf{Scenario} & \textbf{Covariates} & \textbf{Specification} & \textbf{Target} \\
+\midrule
+A & Gaussian & $X \sim \N(0, I)$, 30\% censoring & Baseline curve \\
+B & Log-normal & $X \sim \text{LogNormal}(0, 1)$ & Peak amplitude \\
+C & Categorical & 5 features, $K=100$ levels & Threshold location \\
+D & Gaussian & 90\% censoring & Effective $N$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Models and Training}
+
+The network architecture consists of two hidden layers of width $w$ with ReLU activations and a linear output layer, trained to minimize negative Cox partial log-likelihood.
+
+To observe the double descent phenomenon without confounding effects, we train without explicit regularization: the Adam optimizer runs for up to 50,000 epochs with no early stopping, weight decay, or dropout. Parallel experiments include weight decay ($\lambda = 10^{-4}$) to characterize how regularization modifies the curve.
+
+We sweep hidden layer width over $w \in \{2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048\}$, producing parameter counts spanning approximately $0.1N$ to $100N$ for $N = 1000$ samples.
+
+\subsection{Evaluation}
+
+Data are partitioned into training (60\%), validation (20\%), and test (20\%) sets. We compute concordance index, integrated Brier score, and negative log partial likelihood on the held-out test set.
+
+Each configuration is replicated across multiple random seeds. We report means and standard deviations, the location of the interpolation peak, peak magnitude relative to the classical minimum, and the divergence between concordance and integrated Brier score at the threshold.
+
+% ----------------------------------------------------------------------------
+% 4. RESULTS
+% ----------------------------------------------------------------------------
+\section{Results}
+
+[Results pending experimental execution.]
+
+\subsection{Baseline Double Descent Curve}
+
+\subsection{Skewed Covariates}
+
+\subsection{High-Cardinality Categoricals}
+
+\subsection{Censoring and Effective Sample Size}
+
+\subsection{Metric Divergence}
+
+% ----------------------------------------------------------------------------
+% 5. DISCUSSION
+% ----------------------------------------------------------------------------
+\section{Discussion}
+
+[Discussion pending results.]
+
+\subsection{Clinical Model Selection}
+
+\subsection{Limitations}
+
+% ----------------------------------------------------------------------------
+% 6. CONCLUDING REMARKS
+% ----------------------------------------------------------------------------
+\section{Concluding Remarks}
+
+[Pending results.]
+
+% ----------------------------------------------------------------------------
+% SUPPLEMENTARY MATERIALS
+% ----------------------------------------------------------------------------
+\section*{Supplementary Materials}
+
+Appendix A derives the inverse transform for Weibull-Cox event times. Appendix B details the Gaussian copula procedure for correlated categoricals. Code and data generation scripts are available at [repository URL].
+
+% ----------------------------------------------------------------------------
+% ACKNOWLEDGMENTS
+% ----------------------------------------------------------------------------
+\section*{Acknowledgments}
+
+[To be added]
+
+% ----------------------------------------------------------------------------
+% REFERENCES
+% ----------------------------------------------------------------------------
+\bibliographystyle{apalike}
+\bibliography{references}
+
+% ----------------------------------------------------------------------------
+% APPENDIX
+% ----------------------------------------------------------------------------
+\appendix
+
+\section{Inverse Transform for Weibull-Cox Model}
+
+Hazard: $h(t | \bx) = \lambda \nu t^{\nu-1} \exp(\bbeta^\top \bx)$. Cumulative hazard:
+\begin{equation}
+    H(t | \bx) = \lambda t^\nu \exp(\bbeta^\top \bx).
+\end{equation}
+Survival function:
+\begin{equation}
+    S(t | \bx) = \exp\left(-\lambda t^\nu \exp(\bbeta^\top \bx)\right).
+\end{equation}
+Set $S(T | \bx) = U$, $U \sim \text{Uniform}(0,1)$. Solve:
+\begin{align}
+    -\lambda T^\nu \exp(\bbeta^\top \bx) &= \ln(U), \\
+    T &= \left(\frac{-\ln(U)}{\lambda \exp(\bbeta^\top \bx)}\right)^{1/\nu}.
+\end{align}
+
+\section{Gaussian Copula for Correlated Categoricals}
+
+Generate $(Z_1, Z_2)^\top \sim \N(\bm{0}, \bm{\Sigma})$ with off-diagonal $\rho$. Set $X_{\text{cont}} = Z_1$. Compute $U_2 = \Phi(Z_2)$. Define cutoffs $q_0, \ldots, q_K$ from target marginal probabilities. Assign $X_{\text{cat}} = k$ when $q_{k-1} \leq U_2 < q_k$. Rank correlation from the copula carries through; marginals match specification.
+
+\end{document}
