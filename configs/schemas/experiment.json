@@ -1,0 +1,151 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "experiment.json",
+  "title": "Experiment",
+  "description": "Complete experiment configuration",
+  "type": "object",
+  "required": ["seed", "data", "model", "training"],
+  "properties": {
+    "experiment_id": {
+      "type": "string",
+      "description": "Unique identifier (auto-generated if not provided)"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable experiment name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description"
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Random seed for reproducibility"
+    },
+    "data": {
+      "type": "object",
+      "required": ["scenario"],
+      "properties": {
+        "scenario": {
+          "type": "string",
+          "description": "Scenario name or path to scenario config"
+        },
+        "n_samples": {
+          "type": "integer",
+          "minimum": 100,
+          "description": "Override sample count from scenario"
+        },
+        "n_features": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Override feature count from scenario"
+        },
+        "n_predictive": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Override predictive feature count"
+        },
+        "censoring_rate": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 0.95,
+          "description": "Override censoring rate"
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "required": ["widths"],
+      "properties": {
+        "widths": {
+          "type": "array",
+          "items": {"type": "integer", "minimum": 1, "maximum": 4096},
+          "minItems": 1,
+          "description": "List of network widths to sweep"
+        },
+        "depths": {
+          "type": "array",
+          "items": {"type": "integer", "minimum": 1, "maximum": 10},
+          "default": [2],
+          "description": "List of network depths to sweep"
+        },
+        "activation": {
+          "type": "string",
+          "enum": ["relu", "tanh", "selu"],
+          "default": "relu",
+          "description": "Activation function"
+        },
+        "dropout": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 0.9,
+          "default": 0.0,
+          "description": "Dropout rate (0 = disabled)"
+        },
+        "weight_decay": {
+          "type": "number",
+          "minimum": 0.0,
+          "default": 0.0,
+          "description": "L2 regularization (0 = disabled)"
+        }
+      }
+    },
+    "training": {
+      "type": "object",
+      "properties": {
+        "epochs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000,
+          "default": 50000,
+          "description": "Maximum training epochs"
+        },
+        "batch_size": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 256,
+          "description": "Training batch size"
+        },
+        "learning_rate": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 0.001,
+          "description": "Initial learning rate"
+        },
+        "optimizer": {
+          "type": "string",
+          "enum": ["adam", "sgd", "adamw"],
+          "default": "adam",
+          "description": "Optimizer type"
+        }
+      }
+    },
+    "splits": {
+      "type": "object",
+      "properties": {
+        "train": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 0.9,
+          "default": 0.6,
+          "description": "Training split ratio"
+        },
+        "val": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 0.5,
+          "default": 0.2,
+          "description": "Validation split ratio"
+        },
+        "test": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 0.5,
+          "default": 0.2,
+          "description": "Test split ratio"
+        }
+      }
+    }
+  }
+}

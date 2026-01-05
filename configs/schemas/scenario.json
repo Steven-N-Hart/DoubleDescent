@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "scenario.json",
+  "title": "DataScenario",
+  "description": "Configuration for synthetic survival data generation",
+  "type": "object",
+  "required": ["name", "n_samples", "n_features", "covariate_type", "censoring_rate"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z_]+$",
+      "description": "Unique identifier for the scenario"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description"
+    },
+    "n_samples": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 100000,
+      "description": "Total number of samples"
+    },
+    "n_features": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000,
+      "description": "Total number of features"
+    },
+    "n_predictive": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of non-zero coefficients (must be <= n_features)"
+    },
+    "covariate_type": {
+      "type": "string",
+      "enum": ["gaussian", "lognormal", "categorical", "mixed"],
+      "description": "Type of covariate distribution"
+    },
+    "n_categorical_features": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0,
+      "description": "Number of categorical features (for categorical/mixed types)"
+    },
+    "cardinality": {
+      "type": "integer",
+      "minimum": 2,
+      "default": 100,
+      "description": "Number of levels per categorical feature"
+    },
+    "censoring_rate": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 0.95,
+      "description": "Target censoring proportion"
+    },
+    "weibull_scale": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "default": 0.5,
+      "description": "Weibull lambda (scale) parameter"
+    },
+    "weibull_shape": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "default": 2.0,
+      "description": "Weibull nu (shape) parameter"
+    },
+    "coefficient_range": {
+      "type": "array",
+      "items": {"type": "number"},
+      "minItems": 2,
+      "maxItems": 2,
+      "default": [-1.0, 1.0],
+      "description": "Range [min, max] for ground truth coefficients"
+    },
+    "correlation_matrix": {
+      "type": ["array", "null"],
+      "default": null,
+      "description": "Correlation structure for Gaussian copula (null = identity)"
+    }
+  }
+}
