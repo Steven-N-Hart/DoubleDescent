@@ -94,11 +94,14 @@ class SurvivalDataGenerator:
         # Generate ground truth coefficients
         beta = self._generate_coefficients()
 
-        # Compute linear predictor
-        linear_predictor = X @ beta
+        # Compute predictor (linear or nonlinear)
+        if self.scenario.nonlinear:
+            predictor = self._compute_nonlinear_predictor(X, beta)
+        else:
+            predictor = X @ beta
 
         # Generate true event times using inverse transform sampling
-        T_true = self._generate_event_times(linear_predictor)
+        T_true = self._generate_event_times(predictor)
 
         # Generate censoring times and apply censoring
         T, E = self._apply_censoring(T_true)
@@ -217,6 +220,49 @@ class SurvivalDataGenerator:
         )
 
         return beta
+
+    def _compute_nonlinear_predictor(
+        self, X: np.ndarray, beta: np.ndarray
+    ) -> np.ndarray:
+        """Compute nonlinear predictor with interactions and quadratic terms.
+
+        The nonlinear predictor includes:
+        - Linear terms: X @ beta (same as linear case)
+        - Interaction terms: x_i * x_j for pairs of predictive features
+        - Quadratic terms: x_i^2 for predictive features
+
+        This creates a ground truth that cannot be learned by a linear model,
+        justifying the use of neural networks.
+
+        Args:
+            X: Covariate matrix of shape (n_samples, n_features).
+            beta: Linear coefficients of shape (n_features,).
+
+        Returns:
+            Nonlinear predictor of shape (n_samples,).
+        """
+        n_pred = self.scenario.n_predictive
+        interaction_strength = self.scenario.interaction_strength
+        quadratic_strength = self.scenario.quadratic_strength
+
+        # Start with linear component
+        predictor = X @ beta
+
+        # Add interaction terms: x_0*x_1, x_1*x_2, x_2*x_3, ...
+        # Use consecutive pairs of predictive features
+        for i in range(min(n_pred - 1, 5)):  # Limit to 5 interaction terms
+            interaction = X[:, i] * X[:, i + 1]
+            # Scale by product of corresponding betas to maintain effect scale
+            scale = abs(beta[i] * beta[i + 1]) ** 0.5
+            predictor += interaction_strength * scale * interaction
+
+        # Add quadratic terms: x_0^2, x_1^2, ...
+        for i in range(min(n_pred, 5)):  # Limit to 5 quadratic terms
+            quadratic = X[:, i] ** 2 - 1  # Center around 0 (E[X^2] = 1 for standard normal)
+            scale = abs(beta[i])
+            predictor += quadratic_strength * scale * quadratic
+
+        return predictor
 
     def _generate_event_times(self, linear_predictor: np.ndarray) -> np.ndarray:
         """Generate event times using inverse transform sampling.

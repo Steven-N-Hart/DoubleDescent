@@ -59,6 +59,11 @@ class DataScenario:
     # Ground Truth
     coefficient_range: Tuple[float, float] = (-1.0, 1.0)
 
+    # Nonlinear effects (for nonlinear ground truth scenarios)
+    nonlinear: bool = False
+    interaction_strength: float = 0.5  # Strength of x_i * x_j interactions
+    quadratic_strength: float = 0.3    # Strength of x_i^2 terms
+
     def __post_init__(self) -> None:
         """Validate configuration after initialization."""
         self.validate()
@@ -110,6 +115,9 @@ class DataScenario:
             "weibull_scale": self.weibull_scale,
             "weibull_shape": self.weibull_shape,
             "coefficient_range": list(self.coefficient_range),
+            "nonlinear": self.nonlinear,
+            "interaction_strength": self.interaction_strength,
+            "quadratic_strength": self.quadratic_strength,
         }
 
     @classmethod
@@ -144,6 +152,9 @@ class DataScenario:
             weibull_scale=data.get("weibull_scale", 0.5),
             weibull_shape=data.get("weibull_shape", 2.0),
             coefficient_range=coef_range,
+            nonlinear=data.get("nonlinear", False),
+            interaction_strength=data.get("interaction_strength", 0.5),
+            quadratic_strength=data.get("quadratic_strength", 0.3),
         )
 
     @classmethod
@@ -197,6 +208,15 @@ PREDEFINED_SCENARIOS = {
         description="Imbalanced scenario with 90% censoring (rare events)",
         covariate_type=CovariateType.GAUSSIAN,
         censoring_rate=0.9,
+    ),
+    "nonlinear": DataScenario(
+        name="nonlinear",
+        description="Nonlinear ground truth with interactions and quadratic terms",
+        covariate_type=CovariateType.GAUSSIAN,
+        censoring_rate=0.3,
+        nonlinear=True,
+        interaction_strength=0.5,
+        quadratic_strength=0.3,
     ),
 }
 

@@ -1,0 +1,16 @@
+{
+  "$schema": "../schemas/scenario.json",
+  "name": "nonlinear",
+  "description": "Nonlinear ground truth with interactions and quadratic terms (neural networks required)",
+  "n_samples": 1000,
+  "n_features": 20,
+  "n_predictive": 10,
+  "covariate_type": "gaussian",
+  "censoring_rate": 0.3,
+  "weibull_scale": 0.5,
+  "weibull_shape": 2.0,
+  "coefficient_range": [-1.0, 1.0],
+  "nonlinear": true,
+  "interaction_strength": 0.5,
+  "quadratic_strength": 0.3
+}

@@ -80,6 +80,7 @@ class MetricEvaluator:
         run_id: str,
         epoch: int,
         compute_ibs: bool = True,
+        train_risk_scores: Optional[np.ndarray] = None,
     ) -> MetricResult:
         """Compute all metrics for given risk scores.
 
@@ -90,6 +91,8 @@ class MetricEvaluator:
             run_id: Run identifier.
             epoch: Training epoch.
             compute_ibs: Whether to compute IBS (slower).
+            train_risk_scores: Risk scores on training data (for baseline hazard
+                estimation in IBS). If None, uses zeros (less accurate).
 
         Returns:
             MetricResult with all computed metrics.
@@ -116,7 +119,7 @@ class MetricEvaluator:
 
         # Compute IBS if requested
         if compute_ibs:
-            ibs = self._compute_ibs(risk_scores, eval_data)
+            ibs = self._compute_ibs(risk_scores, eval_data, train_risk_scores)
         else:
             ibs = np.nan
 
@@ -133,20 +136,29 @@ class MetricEvaluator:
         self,
         risk_scores: np.ndarray,
         eval_data: EvaluationData,
+        train_risk_scores: Optional[np.ndarray] = None,
     ) -> float:
         """Compute Integrated Brier Score.
 
         Args:
-            risk_scores: Predicted log-hazard ratios.
+            risk_scores: Predicted log-hazard ratios for evaluation data.
             eval_data: Evaluation data.
+            train_risk_scores: Risk scores for training data (for baseline hazard).
+                If None, uses zeros (original behavior, but less accurate).
 
         Returns:
             IBS value.
         """
         try:
-            # First, estimate baseline hazard from training data
+            # Estimate baseline hazard from training data
+            # Use training risk scores if provided (proper Breslow method)
+            # Otherwise fall back to zeros (original behavior)
+            baseline_risk = (
+                train_risk_scores if train_risk_scores is not None
+                else np.zeros(len(self.train_data))
+            )
             _, baseline_cumhaz = breslow_estimator(
-                risk_scores=np.zeros(len(self.train_data)),  # Use constant for baseline
+                risk_scores=baseline_risk,
                 event_times=self.train_data.T,
                 event_indicators=self.train_data.E,
                 time_points=self.time_grid,
@@ -200,6 +212,9 @@ class MetricEvaluator:
         Returns:
             Dictionary mapping split name to MetricResult.
         """
+        # Pass training risk scores for proper baseline hazard estimation in IBS
+        train_risk = np.asarray(risk_scores_train).ravel()
+
         return {
             "train": self.evaluate(
                 risk_scores_train,
@@ -208,6 +223,7 @@ class MetricEvaluator:
                 run_id,
                 epoch,
                 compute_ibs,
+                train_risk_scores=train_risk,
             ),
             "val": self.evaluate(
                 risk_scores_val,
@@ -216,6 +232,7 @@ class MetricEvaluator:
                 run_id,
                 epoch,
                 compute_ibs,
+                train_risk_scores=train_risk,
             ),
             "test": self.evaluate(
                 risk_scores_test,
@@ -224,5 +241,6 @@ class MetricEvaluator:
                 run_id,
                 epoch,
                 compute_ibs,
+                train_risk_scores=train_risk,
             ),
         }

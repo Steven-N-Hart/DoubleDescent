@@ -78,12 +78,85 @@ def load_experiment_data(experiment_dir: Path, aggregated: bool = False) -> dict
             data['train_curves'] = json.load(f)
 
     # Load baseline results if available
-    baselines_path = experiment_dir.parent.parent / "baselines" / f"{experiment_dir.name}_baselines.json"
-    if baselines_path.exists():
-        with open(baselines_path) as f:
-            data['baselines'] = json.load(f)
+    # For aggregated experiments, we need to load from individual seed baselines
+    baselines_dir = experiment_dir.parent.parent / "baselines"
+
+    # Strip "_aggregated" suffix if present
+    experiment_id = experiment_dir.name.replace("_aggregated", "")
+
+    # Try to load aggregated baselines from all seeds
+    data['baselines'] = load_aggregated_baselines(baselines_dir, experiment_id)
 
     return data
+
+
+def load_aggregated_baselines(
+    baselines_dir: Path,
+    experiment_id: str,
+) -> Optional[Dict]:
+    """Load and aggregate baseline results across seeds.
+
+    Args:
+        baselines_dir: Directory containing baseline CSV files.
+        experiment_id: Base experiment ID (without seed suffix).
+
+    Returns:
+        Dictionary with aggregated baseline metrics, or None if not found.
+    """
+    if not baselines_dir.exists():
+        return None
+
+    # Find all baseline files for this experiment
+    pattern = f"{experiment_id}_seed_*_baselines.csv"
+    baseline_files = list(baselines_dir.glob(pattern))
+
+    if not baseline_files:
+        # Try JSON format
+        pattern = f"{experiment_id}_seed_*_baselines.json"
+        baseline_files = list(baselines_dir.glob(pattern))
+
+    if not baseline_files:
+        return None
+
+    # Aggregate across seeds
+    results = {"CoxPH": [], "RSF": []}
+
+    for bf in baseline_files:
+        if bf.suffix == ".csv":
+            df = pd.read_csv(bf)
+            for _, row in df.iterrows():
+                model = row["model"]
+                if model in results:
+                    results[model].append({
+                        "c_index": row["c_index"],
+                        "ibs": row["ibs"],
+                    })
+        elif bf.suffix == ".json":
+            with open(bf) as f:
+                data = json.load(f)
+            for model, metrics in data.items():
+                if model in results:
+                    results[model].append({
+                        "c_index": metrics["c_index"],
+                        "ibs": metrics.get("ibs"),
+                    })
+
+    # Compute mean and std
+    aggregated = {}
+    for model, values in results.items():
+        if values:
+            c_indices = [v["c_index"] for v in values]
+            ibs_values = [v["ibs"] for v in values if v["ibs"] is not None]
+
+            aggregated[model] = {
+                "c_index": np.mean(c_indices),
+                "c_index_std": np.std(c_indices),
+                "ibs": np.mean(ibs_values) if ibs_values else None,
+                "ibs_std": np.std(ibs_values) if ibs_values else None,
+                "n_seeds": len(c_indices),
+            }
+
+    return aggregated if aggregated else None
 
 
 def find_experiment_dir(base_dir: Path, experiment_id: str) -> Optional[Path]:
@@ -161,11 +234,21 @@ def figure1_main_double_descent(
                edgecolors='black', linewidths=1.5, zorder=5)
 
     # Add baseline reference lines if available
-    if 'baselines' in data:
+    if 'baselines' in data and data['baselines']:
+        colors = {'CoxPH': '#27ae60', 'RSF': '#8e44ad'}
         for name, baseline in data['baselines'].items():
             if metric == 'c_index':
-                ax.axhline(baseline['c_index'], color='gray', linestyle='--',
-                           alpha=0.5, label=f'{name}: {baseline["c_index"]:.3f}')
+                color = colors.get(name, 'gray')
+                ax.axhline(baseline['c_index'], color=color, linestyle='--',
+                           linewidth=2, alpha=0.7,
+                           label=f'{name}: {baseline["c_index"]:.3f}')
+                # Add shaded region for std if available
+                if baseline.get('c_index_std'):
+                    ax.axhspan(
+                        baseline['c_index'] - baseline['c_index_std'],
+                        baseline['c_index'] + baseline['c_index_std'],
+                        color=color, alpha=0.1
+                    )
 
     ax.set_xscale('log', base=2)
     ax.set_xlabel('Model Width (log scale)')
@@ -288,29 +371,23 @@ def figure3_censoring_comparison(
     n_events_baseline = int(n_train * 0.7)  # 70% events for 30% censoring
     n_events_high = int(n_train * 0.1)  # 10% events for 90% censoring
 
-    # Annotate threshold locations - position text to avoid overlap
-    # Baseline annotation: upper right area
-    ax.annotate(f'Peak @ w={widths_b[peak_b]}\n(events≈{n_events_baseline})',
-                xy=(widths_b[peak_b], cindex_b[peak_b]),
-                xytext=(128, 0.76),
-                fontsize=9, ha='left',
-                arrowprops=dict(arrowstyle='->', color='#3498db', alpha=0.7),
-                bbox=dict(boxstyle='round,pad=0.3', facecolor='white', edgecolor='#3498db', alpha=0.9))
-
-    # High censoring annotation: position inside plot area
-    ax.annotate(f'Peak @ w={widths_h[peak_h]}\n(events≈{n_events_high})',
-                xy=(widths_h[peak_h], cindex_h[peak_h]),
-                xytext=(64, 0.72),
-                fontsize=9, ha='left',
-                arrowprops=dict(arrowstyle='->', color='#e74c3c', alpha=0.7),
-                bbox=dict(boxstyle='round,pad=0.3', facecolor='white', edgecolor='#e74c3c', alpha=0.9))
+    # Add error bands if available
+    if baseline_data.get('has_uncertainty') and 'c_index_std' in df_baseline.columns:
+        std_b = df_baseline['c_index_std'].values
+        ax.fill_between(widths_b, cindex_b - std_b, cindex_b + std_b,
+                        alpha=0.2, color='#3498db')
+    if high_censoring_data.get('has_uncertainty') and 'c_index_std' in df_high.columns:
+        std_h = df_high['c_index_std'].values
+        ax.fill_between(widths_h, cindex_h - std_h, cindex_h + std_h,
+                        alpha=0.2, color='#e74c3c')
 
     ax.set_xscale('log', base=2)
     ax.set_xlabel('Model Width (log scale)')
     ax.set_ylabel('Test Concordance Index')
     ax.set_title('Effect of Censoring Rate on Double Descent')
 
-    ax.legend(loc='lower right', framealpha=0.9)
+    # Position legend in upper left to avoid data
+    ax.legend(loc='upper left', framealpha=0.95)
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
@@ -358,30 +435,23 @@ def figure4_regularization_comparison(
                color='#2ecc71', marker='*', edgecolors='black',
                linewidths=1.5, zorder=5)
 
-    # Calculate improvement at peak
-    peak_improvement = cindex_r[peak_b] - cindex_b[peak_b]
-
-    # Add shaded region showing improvement
-    ax.fill_between(widths_b, cindex_b, cindex_r,
-                    where=(cindex_r > cindex_b),
-                    alpha=0.2, color='#2ecc71',
-                    label='Regularization benefit')
+    # Add error bands if available
+    if baseline_data.get('has_uncertainty') and 'c_index_std' in df_baseline.columns:
+        std_b = df_baseline['c_index_std'].values
+        ax.fill_between(widths_b, cindex_b - std_b, cindex_b + std_b,
+                        alpha=0.15, color='#e74c3c')
+    if regularized_data.get('has_uncertainty') and 'c_index_std' in df_reg.columns:
+        std_r = df_reg['c_index_std'].values
+        ax.fill_between(widths_r, cindex_r - std_r, cindex_r + std_r,
+                        alpha=0.15, color='#2ecc71')
 
     ax.set_xscale('log', base=2)
     ax.set_xlabel('Model Width (log scale)')
     ax.set_ylabel('Test Concordance Index')
     ax.set_title('Effect of L2 Regularization on Double Descent')
 
-    # Add annotation about improvement
-    mid_idx = len(widths_b) // 2
-    ax.annotate(f'Peak improvement: +{peak_improvement:.3f}',
-                xy=(widths_b[peak_b], (cindex_b[peak_b] + cindex_r[peak_b])/2),
-                xytext=(256, 0.74),
-                fontsize=9, ha='left',
-                arrowprops=dict(arrowstyle='->', color='gray', alpha=0.7),
-                bbox=dict(boxstyle='round,pad=0.3', facecolor='white', edgecolor='gray', alpha=0.9))
-
-    ax.legend(loc='lower right', framealpha=0.9)
+    # Position legend to avoid data overlap
+    ax.legend(loc='lower right', framealpha=0.95)
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout()

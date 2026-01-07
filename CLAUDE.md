@@ -99,11 +99,11 @@ The manuscript in `manuscript/` follows JASA (Journal of the American Statistica
    - No "it is important to note that" or similar hedging
    - No sandwich structure (intro-body-summary within paragraphs)
 
-3. **No em-dashes in prose**: Avoid `---` for parenthetical remarks. Use commas, parentheses, or restructure into separate sentences.
+3. **No em-dashes in prose**: Avoid `--` for parenthetical remarks. Use commas, parentheses, or restructure into separate sentences.
 
 4. **No bullet points or numbered lists**: Convert all lists to flowing prose paragraphs.
 
-5. **Sentence variety**: Mix short declarative sentences with longer explanatory ones. Avoid uniform sentence length.
+5. **Sentence variety**: Mix medium-length declarative sentences with longer explanatory ones. Avoid uniform sentence length.
 
 6. **Citation style**: Author-year format using natbib (`\citep{}`, `\citet{}`, `\citealt{}`).
 
