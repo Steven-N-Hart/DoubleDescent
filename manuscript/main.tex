@@ -56,7 +56,7 @@
 
 \title{The Survival Double Descent: Generalization Dynamics of Deep Neural Networks in Time-to-Event Analysis}
 
-\author{Steven N. Hart, PhD, ACHIP\thanks{Steven N. Hart is Associate Professor, Department of Laboratory Medicine and Pathology, Mayo Clinic, Rochester, MN 55905 (E-mail: hart.steven@mayo.edu).}}
+\author{Steven N. Hart, PhD, ACHIP\thanks{Steven N. Hart is Associate Professor, Department of Laboratory Medicine and Pathology, and Department of Quantitative Health Sciences, Mayo Clinic, Rochester, MN 55905 (E-mail: hart.steven@mayo.edu).} \and Ann L. Oberg, PhD\thanks{Ann L. Oberg is Professor, Department of Quantitative Health Sciences, Mayo Clinic, Rochester, MN 55905.}}
 
 \date{}
 
@@ -72,7 +72,7 @@
 % ABSTRACT
 % ----------------------------------------------------------------------------
 \begin{abstract}
-Double descent upends classical intuitions about overfitting. Test error drops, spikes at the interpolation threshold, then drops again as models grow larger. The phenomenon is well-documented in classification and regression. Survival analysis is different. Censoring hides true event times. The Cox partial likelihood ranks subjects rather than predicting absolute values. Whether double descent occurs under these conditions, and what form it takes, remains unknown. We construct synthetic survival data with Weibull hazards and controlled censoring to sweep model capacity from underfitting to massive overparameterization. Three questions drive the experiments: Does the interpolation peak shift to $P \approx N_{\text{events}}$ rather than $P \approx N$? Does the concordance index miss overfitting that the integrated Brier score catches? Do skewed covariates and high-cardinality categoricals worsen the spike? The answers matter. Clinicians selecting prognostic models often rely on discrimination metrics alone. If those metrics stay flat while calibration collapses, current practices may favor unstable models.
+Double descent upends classical intuitions about overfitting. Test error drops, spikes at the interpolation threshold, then drops again as models grow larger. The phenomenon is well-documented in classification and regression. Survival analysis is different. Censoring hides true event times. The Cox partial likelihood ranks subjects rather than predicting absolute values. Whether double descent occurs under these conditions, and what form it takes, remains unknown. We construct synthetic survival data with Weibull hazards and controlled censoring to sweep model capacity from underfitting to massive overparameterization. Three questions drive the experiments: Does the interpolation peak shift under high censoring? Does the concordance index miss calibration failures that the integrated Brier score catches? Do log-normal covariates alter the pattern? The answers matter. Clinicians selecting prognostic models often rely on discrimination metrics alone. Our experiments reveal that concordance recovers in the overparameterized regime while integrated Brier score saturates at a constant value, indicating that discrimination-based model selection may miss calibration breakdown. L2 regularization attenuates the double descent peak by approximately 2\% absolute concordance.
 \end{abstract}
 
 \clearpage
@@ -207,11 +207,11 @@ Each configuration is replicated across multiple random seeds. We report means a
 
 \subsection{Baseline Double Descent Curve}
 
-Figure~\ref{fig:double_descent} displays the concordance index as a function of model capacity for Scenario A (Gaussian covariates, 30\% censoring). Test concordance exhibits a clear double descent pattern: it decreases from 0.82 at $w = 2$ to a minimum of 0.72 at $w = 16$, then recovers to 0.80 at $w = 2048$.
+Figure~\ref{fig:double_descent} displays the concordance index as a function of model capacity for Scenario A (Gaussian covariates, 30\% censoring), aggregated across five random seeds. Test concordance exhibits a clear double descent pattern: it decreases from $0.828 \pm 0.015$ at $w = 2$ to a minimum of $0.737 \pm 0.027$ at $w = 16$, then recovers to $0.804 \pm 0.015$ at $w = 2048$. The shaded region represents one standard deviation across seeds.
 
-The vertical dashed line marks the interpolation threshold, estimated at $P \approx N$ where the number of parameters equals the training sample size. The test error peak (minimum concordance) occurs at width $w = 16$, near the threshold where parameter count approaches the number of training samples ($N = 600$). The star marker highlights this critical point.
+The vertical dashed line marks the interpolation threshold, estimated at $P \approx N$ where the number of parameters equals the training sample size. The test error peak (minimum concordance) occurs at width $w = 16$, where parameter count (625) approaches the number of training samples ($N = 600$). The star marker highlights this critical point.
 
-The pattern confirms double descent occurs in survival analysis, though with notable differences from classification. The concordance recovery in the overparameterized regime ($w > 64$) is incomplete: at $w = 2048$, concordance reaches 0.80 but does not return to the baseline of 0.82 observed at $w = 2$, and the trajectory suggests continued gradual improvement at larger widths. This attenuation is consistent with theoretical predictions that benign overfitting may not fully materialize under Cox partial likelihood \citep{liu2025understanding}, where the ranking-based loss geometry differs from squared error.
+The pattern confirms double descent occurs in survival analysis, though with notable differences from classification. The concordance recovery in the overparameterized regime ($w > 64$) is incomplete: at $w = 2048$, concordance reaches 0.804 but does not return to the baseline of 0.828 observed at $w = 2$. This attenuation is consistent with theoretical predictions that benign overfitting may not fully materialize under Cox partial likelihood \citep{liu2025understanding}, where the ranking-based loss geometry differs from squared error.
 
 \begin{figure}[ht]
 \centering
@@ -222,13 +222,13 @@ The pattern confirms double descent occurs in survival analysis, though with not
 
 \subsection{Metric Divergence}
 
-Figure~\ref{fig:metric_divergence} displays concordance index (left axis, blue) and integrated Brier score (right axis, red) on the same plot, revealing their divergent behavior across model capacity. Concordance follows the double descent pattern described above: dropping from 0.82 to 0.72 at $w = 16$, then recovering to 0.80 at $w = 2048$.
+Figure~\ref{fig:metric_divergence} displays concordance index (left axis, blue) and integrated Brier score (right axis, red) on the same plot, revealing their divergent behavior across model capacity. Concordance follows the double descent pattern described above: dropping from $0.828 \pm 0.015$ to $0.737 \pm 0.027$ at $w = 16$, then recovering to $0.804 \pm 0.015$ at $w = 2048$.
 
-The integrated Brier score tells a different story. Test IBS increases from 0.49 at $w = 2$ to plateau at approximately 0.52 for $w \geq 16$, and critically, it does not recover in the overparameterized regime. The purple dashed line marks the width of maximum divergence between the two metrics.
+The integrated Brier score tells a different story. Test IBS increases from $0.469 \pm 0.053$ at $w = 2$ to plateau at approximately $0.523 \pm 0.020$ for $w \geq 16$, and critically, it does not recover in the overparameterized regime. This plateau represents numerical saturation: when survival predictions become extreme (approaching 0 or 1), IBS converges to a constant value regardless of model capacity. The purple dashed line marks the width of maximum divergence between the two metrics.
 
-The key finding is that concordance recovers while IBS does not. At $w = 2048$, concordance returns to within 0.02 of its baseline value, whereas IBS remains elevated by 0.03 (6\% relative increase). This confirms that discrimination and calibration metrics can diverge substantially near the interpolation threshold.
+The key finding is that concordance recovers while IBS saturates. At $w = 2048$, concordance returns to within 0.024 of its baseline value, whereas IBS remains at its saturated level. This behavior reflects the ranking-based nature of Cox partial likelihood optimization: models achieve high concordance through correct risk orderings even as survival probability estimates become degenerate.
 
-The practical implication is direct: a practitioner selecting models by concordance alone would observe acceptable discrimination across the capacity range, potentially selecting a poorly calibrated model. The IBS plateau reveals calibration degradation that concordance misses entirely.
+The practical implication is direct: a practitioner selecting models by concordance alone would observe acceptable discrimination across the capacity range, potentially selecting a model with uninformative survival probability estimates. The IBS saturation reveals calibration breakdown that concordance misses entirely.
 
 \begin{figure}[ht]
 \centering
@@ -241,28 +241,28 @@ The practical implication is direct: a practitioner selecting models by concorda
 
 Figure~\ref{fig:censoring} compares the double descent curve under baseline (30\%) and high (90\%) censoring conditions. Under high censoring, only approximately 60 events occur in the training set ($N_{\text{events}} = 0.1 \times 600 = 60$), compared to 420 events under baseline conditions.
 
-The high censoring curve (red) exhibits greater variability and a shifted interpolation peak. Test concordance under high censoring drops from 0.87 at $w = 2$ to a minimum of 0.71 at $w = 8$, then shows irregular recovery, reaching 0.80 at $w = 2048$. The peak location shifts leftward compared to baseline, occurring at $w = 8$ rather than $w = 16$.
+The high censoring curve (red) exhibits markedly different behavior from the baseline. Test concordance under high censoring starts at $0.751 \pm 0.111$ at $w = 2$ and improves monotonically to $0.802 \pm 0.024$ at $w = 2048$, without exhibiting a clear double descent pattern. The wide error bands (particularly at small widths) reflect the high variance inherent in extreme censoring scenarios where signal is sparse.
 
-This shift is consistent with the hypothesis that the interpolation threshold depends on effective sample size rather than total sample size. With only 60 observed events, the model achieves interpolation at lower capacity. The noisier recovery pattern in the overparameterized regime reflects the reduced signal-to-noise ratio inherent in high-censoring scenarios.
+The absence of a pronounced double descent under 90\% censoring has two possible interpretations. The reduced event count may shift the interpolation threshold below our minimum tested width, such that all configurations lie in the overparameterized regime. Alternatively, the noise from extreme censoring may obscure the phenomenon entirely. Both explanations are consistent with the hypothesis that effective sample size (event count) governs the threshold location.
 
-The practical implication is that survival models trained on rare-event data may exhibit double descent at smaller model sizes than expected from total sample counts. Model selection strategies should account for censoring rate when determining appropriate capacity ranges.
+The practical implication is that survival models trained on rare-event data require different model selection strategies. The high variance across seeds under extreme censoring underscores the importance of replicated experiments when assessing neural survival models in low-event settings.
 
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.85\textwidth]{figures/fig3_censoring_comparison.pdf}
-\caption{Effect of censoring rate on double descent. Test concordance versus model width under 30\% censoring (blue, $N_{\text{events}} \approx 420$) and 90\% censoring (red, $N_{\text{events}} \approx 60$). The interpolation peak shifts leftward under high censoring, from $w = 16$ to $w = 8$, consistent with the threshold depending on event count rather than total sample size. Stars mark the minimum concordance for each scenario.}
+\caption{Effect of censoring rate on double descent. Test concordance versus model width under 30\% censoring (blue, $N_{\text{events}} \approx 420$) and 90\% censoring (red, $N_{\text{events}} \approx 60$). Under high censoring, the double descent pattern is obscured by noise and high variance across seeds. Shaded regions represent one standard deviation. Stars mark minimum concordance for each scenario.}
 \label{fig:censoring}
 \end{figure}
 
 \subsection{Regularization Mitigates Double Descent}
 
-Figure~\ref{fig:regularization} compares test concordance across model widths with and without L2 regularization (weight decay $\lambda = 0.01$). Regularization substantially attenuates the double descent phenomenon.
+Figure~\ref{fig:regularization} compares test concordance across model widths with and without L2 regularization (weight decay $\lambda = 0.01$). Regularization attenuates the double descent phenomenon, though its effects are nuanced.
 
-The unregularized baseline exhibits a sharp performance dip near the interpolation threshold ($w = 16$), with concordance dropping to 0.723. With weight decay, the minimum concordance improves to 0.733 at $w = 64$---a relative improvement of approximately 1.4\% at the worst point. More notably, the regularized curve exhibits a flatter profile across the critical region ($w \in [16, 64]$), suggesting that L2 regularization smooths the transition between underparameterized and overparameterized regimes.
+The unregularized baseline exhibits a sharp performance dip near the interpolation threshold ($w = 16$), with concordance dropping to $0.737 \pm 0.027$. With weight decay, the minimum concordance occurs at $w = 16$ with value $0.755 \pm 0.024$---an improvement of approximately 2\% absolute at the worst point. The regularized curve exhibits a flatter profile across the critical region ($w \in [16, 64]$), suggesting that L2 regularization smooths the transition between underparameterized and overparameterized regimes.
 
-In the overparameterized regime ($w \geq 128$), both curves recover, but regularization maintains a consistent advantage. The shaded region in Figure~\ref{fig:regularization} highlights widths where regularization improves performance. This improvement is most pronounced near the interpolation threshold, precisely where practitioners should be most cautious about model selection.
+In the overparameterized regime ($w \geq 128$), both curves stabilize, with regularization maintaining a modest but consistent advantage. The shaded region in Figure~\ref{fig:regularization} highlights widths where regularization improves performance. Notably, the regularized models achieve $0.784 \pm 0.016$ at $w = 2048$, compared to $0.804 \pm 0.015$ for unregularized models. This suggests that while regularization helps near the threshold, very large unregularized models may ultimately achieve slightly better discrimination through implicit regularization.
 
-These results align with theoretical accounts of double descent, which attribute the phenomenon to implicit regularization in overparameterized models \citep{belkin2019reconciling}. Explicit regularization appears to provide similar benefits, effectively ``borrowing'' the smoothing properties of very large models and applying them across the capacity spectrum.
+These results partially align with theoretical accounts of double descent \citep{belkin2019reconciling}. Explicit regularization provides benefits near the interpolation threshold, but does not fully substitute for the implicit regularization conferred by extreme overparameterization.
 
 \begin{figure}[ht]
 \centering
@@ -271,12 +271,37 @@ These results align with theoretical accounts of double descent, which attribute
 \label{fig:regularization}
 \end{figure}
 
+\subsection{Covariate Distribution Effects}
+
+Figure~\ref{fig:scenario_comparison} presents the double descent curve across three covariate types: Gaussian (Scenario A), log-normal (Scenario B), and high-cardinality categorical (Scenario C). All scenarios use 30\% censoring to isolate the effect of covariate distribution.
+
+The Gaussian baseline exhibits the characteristic double descent pattern with a minimum concordance of $0.737 \pm 0.027$ at $w = 16$, recovering to $0.804 \pm 0.015$ at $w = 2048$. Log-normal covariates produce a similar pattern with a minimum of $0.804 \pm 0.039$ at $w = 16$, but with notably stronger recovery: concordance reaches $0.878 \pm 0.030$ in the overparameterized regime, exceeding the Gaussian baseline. The heavy-tailed distribution appears to provide richer signal that larger models can exploit.
+
+The categorical scenario (100 levels per feature, 5 features) yields concordance near 0.52 across all model widths, essentially random performance. This negative result is interpretable: one-hot encoding of 500 categorical levels creates an input dimensionality that far exceeds the sample size, placing even the smallest models in the overparameterized regime with insufficient signal for learning. The categorical scenario thus does not test double descent but rather demonstrates a regime where the learning problem is fundamentally ill-posed.
+
+For Gaussian and log-normal covariates, double descent in survival analysis is robust to covariate distribution, though threshold location and recovery magnitude vary with data characteristics.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/fig5_scenario_comparison.pdf}
+\caption{Double descent across covariate types. Test concordance versus model width for Gaussian (left), log-normal (center), and categorical (right) covariates. All scenarios use 30\% censoring. Stars mark minimum concordance. Gaussian and log-normal covariates exhibit clear double descent patterns, while high-cardinality categoricals yield near-random performance due to extreme input dimensionality. Shaded regions represent one standard deviation across five seeds.}
+\label{fig:scenario_comparison}
+\end{figure}
+
 % ----------------------------------------------------------------------------
 % 5. DISCUSSION
 % ----------------------------------------------------------------------------
 \section{Discussion}
 
-Our experiments confirm that double descent occurs in survival analysis under Cox partial likelihood training, extending prior observations from classification and regression settings to time-to-event modeling. The phenomenon appears robust across evaluation metrics (concordance index and integrated Brier score), censoring rates, and regularization conditions.
+Our experiments confirm that double descent occurs in survival analysis under Cox partial likelihood training, extending prior observations from classification and regression settings to time-to-event modeling. The phenomenon appears robustly in concordance index across different covariate distributions (Gaussian, log-normal), though its manifestation differs from classification in important ways. Most notably, the integrated Brier score does not exhibit double descent but rather saturates at a constant value in the overparameterized regime, revealing a fundamental decoupling between discrimination and calibration metrics under Cox optimization.
+
+\subsection{Relation to Theoretical Predictions}
+
+\citet{liu2025understanding} provide theoretical analysis of double descent in survival models, and our empirical findings both confirm and extend their predictions. Their analysis predicts that double descent should occur under Cox partial likelihood, which our experiments verify: test concordance exhibits the characteristic non-monotonic pattern with a minimum at the interpolation threshold.
+
+Two of their key predictions align with our observations. First, they suggest that the second descent may be attenuated relative to classification settings because the Cox loss optimizes rankings rather than point predictions. Our results confirm this: concordance recovers from 0.737 to 0.804 but does not return to the baseline of 0.828, a recovery of approximately 74\% rather than 100\%. Second, they note that benign overfitting may not fully materialize under survival losses. The incomplete recovery we observe is consistent with this prediction, though the mechanism differs from their theoretical account: we find that calibration (as measured by IBS) fails entirely in the overparameterized regime, even as discrimination recovers.
+
+One observation extends beyond their theoretical framework. \citet{liu2025understanding} do not distinguish between discrimination and calibration metrics, treating generalization error as a unified quantity. Our experiments reveal that these metrics decouple dramatically: concordance follows a double descent curve while IBS saturates. This decoupling is a direct consequence of the ranking-based Cox loss, which can achieve high discrimination through correct orderings even when the underlying risk scores (and derived survival probabilities) become degenerate. This finding has practical implications not addressed in the theoretical analysis: concordance-based model selection, standard in survival analysis, may mask calibration failures that affect clinical decision-making.
 
 \subsection{Clinical Model Selection}
 
@@ -284,24 +309,28 @@ The double descent curve presents a practical challenge for survival model selec
 
 \textit{Avoid the threshold region.} When training neural survival models, practitioners should either (1) constrain capacity to remain clearly underparameterized, or (2) scale to overparameterized regimes where benign overfitting provides protection. The intermediate region, particularly near $P \approx N_{\text{events}}$, should be avoided or traversed quickly during hyperparameter search.
 
-\textit{Account for censoring.} In high-censoring scenarios common to many clinical applications (e.g., rare adverse events, long-term outcomes), the effective sample size is determined by event counts, not total observations. This shifts the danger zone leftward toward smaller models than naive sample size calculations would suggest.
+\textit{Account for censoring.} In high-censoring scenarios common to many clinical applications (e.g., rare adverse events, long-term outcomes), the effective sample size is determined by event counts, not total observations. Our experiments with 90\% censoring showed substantially higher variance and an obscured double descent pattern, underscoring the importance of replicated experiments and larger sample sizes when events are rare.
 
-\textit{Use regularization.} L2 regularization via weight decay provides a practical mitigation strategy, attenuating the performance dip without requiring models to be scaled to extreme sizes. A modest weight decay ($\lambda = 0.01$) improved worst-case performance by over 1\% absolute concordance in our experiments.
+\textit{Use regularization.} L2 regularization via weight decay provides a practical mitigation strategy, attenuating the performance dip without requiring models to be scaled to extreme sizes. A modest weight decay ($\lambda = 0.01$) improved worst-case performance by approximately 2\% absolute concordance in our experiments.
 
 \subsection{Limitations}
 
 Our experiments vary network width while holding depth fixed at two hidden layers. Prior work in classification suggests that width and depth produce similar double descent curves when plotted against total parameter count \citep{nakkiran2021deep}, but whether this equivalence holds under Cox partial likelihood optimization remains untested. Deeper networks introduce additional optimization challenges, including vanishing gradients and the potential need for residual connections, which could interact with the survival loss geometry in ways our experiments do not address.
+
+The categorical covariate scenario (Scenario C) failed to produce meaningful predictions, with concordance near 0.52 across all model sizes. This reflects a fundamental limitation of our experimental design: one-hot encoding of 500 categorical levels creates input dimensionality that overwhelms the sample size. Future work should explore embedding-based approaches for high-cardinality categoricals, which may enable meaningful double descent analysis in such settings.
+
+Our IBS analysis revealed numerical saturation rather than true calibration measurement in the overparameterized regime. When survival predictions become extreme (near 0 or 1 for all subjects), IBS converges to a constant regardless of actual calibration quality. This limits our ability to assess calibration in precisely the regime where it matters most. Alternative calibration metrics that are robust to extreme predictions warrant investigation.
 
 % ----------------------------------------------------------------------------
 % 6. CONCLUDING REMARKS
 % ----------------------------------------------------------------------------
 \section{Concluding Remarks}
 
-We have demonstrated that double descent---the non-monotonic relationship between model capacity and test error---occurs in neural survival models trained with Cox partial likelihood. The phenomenon manifests clearly in both concordance index and integrated Brier score, confirming that double descent affects both discrimination and calibration in time-to-event prediction.
+We have demonstrated that double descent---the non-monotonic relationship between model capacity and test error---occurs in neural survival models trained with Cox partial likelihood. The phenomenon manifests clearly in concordance index: test concordance drops from 0.828 to 0.737 at the interpolation threshold before recovering to 0.804 in the overparameterized regime. The integrated Brier score, however, saturates at a constant value beyond the threshold, revealing that discrimination and calibration metrics decouple under Cox optimization.
 
-Our experiments reveal that the interpolation threshold in survival analysis depends on effective sample size (event count) rather than total observations, with important implications for model selection under heavy censoring. L2 regularization provides effective mitigation, suggesting that explicit regularization can substitute for the implicit regularization conferred by extreme overparameterization.
+Our experiments with 90\% censoring showed that extreme censoring obscures the double descent pattern and introduces substantial variance, highlighting the importance of event count in determining model behavior. L2 regularization provides effective mitigation at the threshold, improving worst-case concordance by approximately 2\% absolute.
 
-These findings have immediate practical relevance for clinical prognostic modeling, where neural networks are increasingly applied to survival endpoints. The double descent curve implies that moderate-complexity models---often the default in applied settings---may perform worse than either simpler or substantially larger alternatives. Practitioners should consider explicit regularization strategies and account for censoring-adjusted sample sizes when selecting neural survival model architectures.
+These findings have immediate practical relevance for clinical prognostic modeling, where neural networks are increasingly applied to survival endpoints. The double descent curve implies that moderate-complexity models---often the default in applied settings---may perform worse than either simpler or substantially larger alternatives. Practitioners should use explicit regularization, avoid the interpolation threshold region during hyperparameter search, and recognize that concordance-based model selection may miss calibration breakdown in overparameterized models.
 
 % ----------------------------------------------------------------------------
 % SUPPLEMENTARY MATERIALS

@@ -1,0 +1,36 @@
+{
+  "$schema": "../schemas/experiment.json",
+  "experiment_id": "categorical_001",
+  "name": "Categorical Double Descent",
+  "description": "High-cardinality categorical features (5 features with 100 levels), 30% censoring, width sweep",
+  "seed": 42,
+  "data": {
+    "name": "high_cardinality",
+    "description": "High-cardinality categorical features (5 features with 100 levels each) and 30% censoring",
+    "n_samples": 1000,
+    "n_features": 20,
+    "n_predictive": 10,
+    "covariate_type": "categorical",
+    "n_categorical_features": 5,
+    "cardinality": 100,
+    "censoring_rate": 0.3
+  },
+  "model": {
+    "widths": [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048],
+    "depths": [2],
+    "activation": "relu",
+    "dropout": 0.0,
+    "weight_decay": 0.0
+  },
+  "training": {
+    "epochs": 10000,
+    "batch_size": 256,
+    "learning_rate": 0.001,
+    "optimizer": "adam"
+  },
+  "splits": {
+    "train": 0.6,
+    "val": 0.2,
+    "test": 0.2
+  }
+}

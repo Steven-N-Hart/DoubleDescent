@@ -1,9 +1,14 @@
 #!/usr/bin/env python
-"""Generate publication-quality figures for the double descent paper."""
+"""Generate publication-quality figures for the double descent paper.
+
+Supports both single-seed experiments and multi-seed aggregated results
+with uncertainty quantification (error bands).
+"""
 
 import json
 import sys
 from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import matplotlib
@@ -28,14 +33,37 @@ plt.rcParams.update({
 })
 
 
-def load_experiment_data(experiment_dir: Path) -> dict:
-    """Load all data from an experiment directory."""
+def load_experiment_data(experiment_dir: Path, aggregated: bool = False) -> dict:
+    """Load all data from an experiment directory.
+
+    Args:
+        experiment_dir: Path to experiment output directory.
+        aggregated: If True, look for aggregated multi-seed results.
+
+    Returns:
+        Dictionary with summary DataFrame and curves data.
+    """
     data = {}
 
-    # Load summary CSV
-    summary_path = experiment_dir / "results" / "summary.csv"
+    # Determine summary path based on whether aggregated or not
+    if aggregated:
+        summary_path = experiment_dir / "results" / "summary.csv"
+        # Aggregated results have mean/std columns
+        data['has_uncertainty'] = True
+    else:
+        summary_path = experiment_dir / "results" / "summary.csv"
+        data['has_uncertainty'] = False
+
     if summary_path.exists():
         data['summary'] = pd.read_csv(summary_path)
+
+        # Check if this is aggregated data (has _mean columns)
+        if 'c_index_mean' in data['summary'].columns:
+            data['has_uncertainty'] = True
+            # Create c_index/ibs columns from means for compatibility
+            data['summary']['c_index'] = data['summary']['c_index_mean']
+            data['summary']['ibs'] = data['summary']['ibs_mean']
+            data['summary']['nll'] = data['summary']['nll_mean']
 
     # Load curves JSON
     curves_path = experiment_dir / "results" / "curves.json"
@@ -49,39 +77,70 @@ def load_experiment_data(experiment_dir: Path) -> dict:
         with open(train_curves_path) as f:
             data['train_curves'] = json.load(f)
 
+    # Load baseline results if available
+    baselines_path = experiment_dir.parent.parent / "baselines" / f"{experiment_dir.name}_baselines.json"
+    if baselines_path.exists():
+        with open(baselines_path) as f:
+            data['baselines'] = json.load(f)
+
     return data
+
+
+def find_experiment_dir(base_dir: Path, experiment_id: str) -> Optional[Path]:
+    """Find experiment directory, preferring aggregated results.
+
+    Args:
+        base_dir: Base experiments directory.
+        experiment_id: Base experiment ID (e.g., 'baseline_001').
+
+    Returns:
+        Path to experiment directory, or None if not found.
+    """
+    # First check for aggregated results
+    aggregated_dir = base_dir / f"{experiment_id}_aggregated"
+    if aggregated_dir.exists():
+        return aggregated_dir
+
+    # Fall back to single-seed results
+    single_dir = base_dir / experiment_id
+    if single_dir.exists():
+        return single_dir
+
+    return None
 
 
 def figure1_main_double_descent(
     data: dict,
     output_path: Path,
-    metric: str = "ibs",
+    metric: str = "c_index",
 ):
-    """Figure 1: Main double descent curve with train and test.
+    """Figure 1: Main double descent curve with error bands.
 
-    Shows test error (IBS) vs model capacity with training error overlay.
+    Shows test error vs model capacity with uncertainty bands (if multi-seed).
     """
     fig, ax = plt.subplots(figsize=(8, 5))
 
     df = data['summary']
     widths = df['width'].values
 
-    # Get train and test values
-    if 'train_curves' in data and metric in data['train_curves']:
-        train_vals = np.array(data['train_curves'][metric]['values'])
+    # Get test values (mean if aggregated)
+    if metric in df.columns:
+        test_vals = df[metric].values
+    elif f'{metric}_mean' in df.columns:
+        test_vals = df[f'{metric}_mean'].values
     else:
-        train_vals = None
+        test_vals = df['c_index'].values
 
-    test_vals = df[metric].values if metric in df.columns else df['c_index'].values
-
-    # Plot test curve (primary)
-    ax.plot(widths, test_vals, 'o-', linewidth=2.5, markersize=8,
-            color='#e74c3c', label='Test', zorder=3)
-
-    # Plot train curve
-    if train_vals is not None:
-        ax.plot(widths, train_vals, 's--', linewidth=2, markersize=6,
-                color='#2ecc71', label='Train', alpha=0.8, zorder=2)
+    # Plot test curve with error bands if available
+    if data.get('has_uncertainty') and f'{metric}_std' in df.columns:
+        std_vals = df[f'{metric}_std'].values
+        ax.fill_between(widths, test_vals - std_vals, test_vals + std_vals,
+                        alpha=0.3, color='#e74c3c', label='±1 std')
+        ax.plot(widths, test_vals, 'o-', linewidth=2.5, markersize=8,
+                color='#e74c3c', label='Test (mean)', zorder=3)
+    else:
+        ax.plot(widths, test_vals, 'o-', linewidth=2.5, markersize=8,
+                color='#e74c3c', label='Test', zorder=3)
 
     # Mark interpolation threshold (approximate P ≈ N)
     n_train = 600  # 60% of 1000
@@ -89,7 +148,7 @@ def figure1_main_double_descent(
     threshold_width = widths[threshold_idx]
 
     ax.axvline(threshold_width, color='gray', linestyle=':', linewidth=2,
-               label=f'P ≈ N ({threshold_width})', alpha=0.7)
+               label=f'P ≈ N', alpha=0.7)
 
     # Mark the peak (worst test performance)
     if metric == 'c_index':
@@ -100,6 +159,13 @@ def figure1_main_double_descent(
     ax.scatter([widths[peak_idx]], [test_vals[peak_idx]],
                s=200, color='#e74c3c', marker='*',
                edgecolors='black', linewidths=1.5, zorder=5)
+
+    # Add baseline reference lines if available
+    if 'baselines' in data:
+        for name, baseline in data['baselines'].items():
+            if metric == 'c_index':
+                ax.axhline(baseline['c_index'], color='gray', linestyle='--',
+                           alpha=0.5, label=f'{name}: {baseline["c_index"]:.3f}')
 
     ax.set_xscale('log', base=2)
     ax.set_xlabel('Model Width (log scale)')
@@ -114,12 +180,6 @@ def figure1_main_double_descent(
 
     ax.legend(loc='best', framealpha=0.9)
     ax.grid(True, alpha=0.3)
-
-    # Add annotations
-    ax.annotate('Underparameterized', xy=(4, ax.get_ylim()[1]*0.95),
-                fontsize=9, ha='center', alpha=0.7)
-    ax.annotate('Overparameterized', xy=(512, ax.get_ylim()[1]*0.95),
-                fontsize=9, ha='center', alpha=0.7)
 
     plt.tight_layout()
     fig.savefig(f"{output_path}.png")
@@ -388,6 +448,62 @@ def table1_experimental_scenarios(output_path: Path):
     return df
 
 
+def figure5_scenario_comparison(
+    scenario_data: Dict[str, dict],
+    output_path: Path,
+):
+    """Figure 5: Comparison panel across scenarios.
+
+    Shows Gaussian vs Log-normal vs Categorical in a 3-panel figure.
+    """
+    fig, axes = plt.subplots(1, 3, figsize=(14, 4), sharey=True)
+
+    colors = {
+        'baseline': '#3498db',
+        'lognormal': '#e74c3c',
+        'categorical': '#2ecc71',
+    }
+    labels = {
+        'baseline': 'Gaussian',
+        'lognormal': 'Log-Normal',
+        'categorical': 'Categorical',
+    }
+
+    for ax, (scenario_name, data) in zip(axes, scenario_data.items()):
+        df = data['summary']
+        widths = df['width'].values
+        c_index = df['c_index'].values
+        color = colors.get(scenario_name, '#333333')
+
+        # Plot with error bands if available
+        if data.get('has_uncertainty') and 'c_index_std' in df.columns:
+            std_vals = df['c_index_std'].values
+            ax.fill_between(widths, c_index - std_vals, c_index + std_vals,
+                            alpha=0.3, color=color)
+
+        ax.plot(widths, c_index, 'o-', linewidth=2.5, markersize=8, color=color)
+
+        # Mark peak
+        peak_idx = np.argmin(c_index)
+        ax.scatter([widths[peak_idx]], [c_index[peak_idx]], s=150,
+                   color=color, marker='*', edgecolors='black',
+                   linewidths=1.5, zorder=5)
+
+        ax.set_xscale('log', base=2)
+        ax.set_xlabel('Model Width')
+        ax.set_title(labels.get(scenario_name, scenario_name))
+        ax.grid(True, alpha=0.3)
+
+    axes[0].set_ylabel('Test Concordance Index')
+
+    fig.suptitle('Double Descent Across Covariate Types', fontsize=14, y=1.02)
+    plt.tight_layout()
+    fig.savefig(f"{output_path}.png")
+    fig.savefig(f"{output_path}.pdf")
+    plt.close(fig)
+    print(f"  Saved: {output_path}.png/pdf")
+
+
 def main():
     """Generate all paper figures."""
 
@@ -395,46 +511,45 @@ def main():
     project_root = Path(__file__).parent.parent
     output_dir = project_root / "outputs" / "paper_figures"
     output_dir.mkdir(parents=True, exist_ok=True)
-
-    baseline_dir = project_root / "outputs" / "experiments" / "baseline_001"
-    high_censoring_dir = project_root / "outputs" / "experiments" / "high_censoring_001"
-    regularized_dir = project_root / "outputs" / "experiments" / "regularized_001"
+    experiments_dir = project_root / "outputs" / "experiments"
 
     print("Generating paper figures...")
     print(f"Output directory: {output_dir}\n")
 
+    # Try to find experiments (prefer aggregated if available)
+    baseline_dir = find_experiment_dir(experiments_dir, "baseline_001")
+    high_censoring_dir = find_experiment_dir(experiments_dir, "high_censoring_001")
+    regularized_dir = find_experiment_dir(experiments_dir, "regularized_001")
+    lognormal_dir = find_experiment_dir(experiments_dir, "lognormal_001")
+    categorical_dir = find_experiment_dir(experiments_dir, "categorical_001")
+
     # Load baseline data
-    if baseline_dir.exists():
+    if baseline_dir:
         baseline_data = load_experiment_data(baseline_dir)
-        print(f"Loaded baseline experiment from {baseline_dir}")
+        print(f"Loaded baseline from {baseline_dir}")
+        if baseline_data.get('has_uncertainty'):
+            print("  (with uncertainty from multi-seed aggregation)")
     else:
-        print(f"ERROR: Baseline experiment not found at {baseline_dir}")
+        print(f"ERROR: Baseline experiment not found")
         return 1
 
     # Figure 1: Main double descent
     print("\n1. Main Double Descent Figure (C-index)")
     figure1_main_double_descent(
         baseline_data,
-        output_dir / "fig1_double_descent_cindex",
+        output_dir / "fig1_double_descent",
         metric='c_index'
-    )
-
-    print("\n1b. Main Double Descent Figure (IBS)")
-    figure1_main_double_descent(
-        baseline_data,
-        output_dir / "fig1_double_descent_ibs",
-        metric='ibs'
     )
 
     # Figure 2: C-index vs IBS divergence
     print("\n2. C-index vs IBS Divergence")
     figure2_cindex_vs_ibs(
         baseline_data,
-        output_dir / "fig2_cindex_vs_ibs"
+        output_dir / "fig2_metric_divergence"
     )
 
-    # Figure 3: Censoring comparison (requires high censoring experiment)
-    if high_censoring_dir.exists():
+    # Figure 3: Censoring comparison
+    if high_censoring_dir:
         print("\n3. Censoring Rate Comparison")
         high_censoring_data = load_experiment_data(high_censoring_dir)
         figure3_censoring_comparison(
@@ -443,25 +558,42 @@ def main():
             output_dir / "fig3_censoring_comparison"
         )
     else:
-        print(f"\n3. Skipping censoring comparison (run high_censoring experiment first)")
+        print("\n3. Skipping censoring comparison (experiment not found)")
 
-    # Figure 4: Regularization comparison (requires regularized experiment)
-    if regularized_dir.exists():
+    # Figure 4: Regularization comparison
+    if regularized_dir:
         print("\n4. Regularization Comparison")
         regularized_data = load_experiment_data(regularized_dir)
         figure4_regularization_comparison(
             baseline_data,
             regularized_data,
-            output_dir / "fig4_regularization_comparison"
+            output_dir / "fig4_regularization"
         )
     else:
-        print(f"\n4. Skipping regularization comparison (run regularized experiment first)")
+        print("\n4. Skipping regularization comparison (experiment not found)")
+
+    # Figure 5: Scenario comparison panel
+    scenario_data = {}
+    if baseline_dir:
+        scenario_data['baseline'] = baseline_data
+    if lognormal_dir:
+        scenario_data['lognormal'] = load_experiment_data(lognormal_dir)
+    if categorical_dir:
+        scenario_data['categorical'] = load_experiment_data(categorical_dir)
+
+    if len(scenario_data) >= 2:
+        print("\n5. Scenario Comparison Panel")
+        figure5_scenario_comparison(scenario_data, output_dir / "fig5_scenario_comparison")
+    else:
+        print("\n5. Skipping scenario comparison (need at least 2 scenarios)")
 
     # Table 1: Experimental scenarios
-    print("\n5. Experimental Scenarios Table")
+    print("\n6. Experimental Scenarios Table")
     table1_experimental_scenarios(output_dir / "table1_scenarios")
 
-    print(f"\n✓ Paper figures generated in: {output_dir}")
+    print(f"\n{'='*60}")
+    print(f"Paper figures generated in: {output_dir}")
+    print(f"{'='*60}")
     return 0
 
 
