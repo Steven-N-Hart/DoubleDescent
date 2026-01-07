@@ -65,6 +65,59 @@ class SurvivalData:
         )
 
 
+@dataclass
+class SurvivalDataEmbedding:
+    """Container for survival data with categorical features for embedding.
+
+    Instead of one-hot encoding, categorical features are stored as indices
+    for use with nn.Embedding layers.
+
+    Attributes:
+        X_continuous: Continuous features of shape (n_samples, n_continuous).
+        X_categorical: Categorical indices of shape (n_samples, n_categorical).
+        categorical_cardinalities: List of cardinality for each categorical feature.
+        T: Observed survival times of shape (n_samples,).
+        E: Event indicators of shape (n_samples,).
+        T_true: True event times before censoring of shape (n_samples,).
+        beta: Ground truth coefficients (for continuous features).
+    """
+
+    X_continuous: np.ndarray
+    X_categorical: np.ndarray
+    categorical_cardinalities: list
+    T: np.ndarray
+    E: np.ndarray
+    T_true: np.ndarray
+    beta: np.ndarray
+
+    def save(self, path: Union[str, Path]) -> None:
+        """Save data to npz file."""
+        np.savez(
+            path,
+            X_continuous=self.X_continuous,
+            X_categorical=self.X_categorical,
+            categorical_cardinalities=np.array(self.categorical_cardinalities),
+            T=self.T,
+            E=self.E,
+            T_true=self.T_true,
+            beta=self.beta,
+        )
+
+    @classmethod
+    def load(cls, path: Union[str, Path]) -> "SurvivalDataEmbedding":
+        """Load data from npz file."""
+        data = np.load(path)
+        return cls(
+            X_continuous=data["X_continuous"],
+            X_categorical=data["X_categorical"],
+            categorical_cardinalities=data["categorical_cardinalities"].tolist(),
+            T=data["T"],
+            E=data["E"],
+            T_true=data["T_true"],
+            beta=data["beta"],
+        )
+
+
 class SurvivalDataGenerator:
     """Generator for synthetic survival data.
 
@@ -107,6 +160,102 @@ class SurvivalDataGenerator:
         T, E = self._apply_censoring(T_true)
 
         return SurvivalData(X=X, T=T, E=E, T_true=T_true, beta=beta)
+
+    def generate_for_embedding(self) -> SurvivalDataEmbedding:
+        """Generate survival data with categorical features as indices for embedding.
+
+        This method is designed for use with DeepSurvEmbedding, which uses
+        nn.Embedding layers instead of one-hot encoding. This avoids the
+        p >> n problem that occurs with high-cardinality categorical features.
+
+        Returns:
+            SurvivalDataEmbedding with separate continuous and categorical arrays.
+        """
+        n = self.scenario.n_samples
+        n_cat = self.scenario.n_categorical_features
+        cardinality = self.scenario.cardinality
+
+        if self.scenario.covariate_type not in (CovariateType.CATEGORICAL, CovariateType.MIXED):
+            raise ValueError(
+                "generate_for_embedding() requires categorical or mixed covariate type"
+            )
+
+        # For categorical-only scenario
+        if self.scenario.covariate_type == CovariateType.CATEGORICAL:
+            if n_cat == 0:
+                n_cat = self.scenario.n_features
+            # No continuous features
+            X_continuous = np.zeros((n, 0))
+            # Generate categorical indices
+            X_categorical = self.rng.integers(0, cardinality, size=(n, n_cat))
+            cardinalities = [cardinality] * n_cat
+
+            # For ground truth, use embedding-weighted sum
+            # Each category has a "true" effect drawn from coefficient range
+            beta_embeddings = []
+            for i in range(n_cat):
+                cat_effects = self.rng.uniform(
+                    self.scenario.coefficient_range[0],
+                    self.scenario.coefficient_range[1],
+                    size=cardinality,
+                )
+                beta_embeddings.append(cat_effects)
+
+            # Compute predictor as sum of category effects
+            predictor = np.zeros(n)
+            for i in range(n_cat):
+                # Only first n_predictive categorical features contribute
+                if i < self.scenario.n_predictive:
+                    predictor += beta_embeddings[i][X_categorical[:, i]]
+
+            # Dummy beta for storage (categorical effects stored differently)
+            beta = np.zeros(n_cat)
+
+        # For mixed scenario
+        else:
+            n_cont = self.scenario.n_features - n_cat
+            # Generate continuous features
+            X_continuous = self.rng.standard_normal(size=(n, n_cont))
+            # Generate categorical indices
+            X_categorical = self.rng.integers(0, cardinality, size=(n, n_cat))
+            cardinalities = [cardinality] * n_cat
+
+            # Ground truth for continuous features
+            beta = np.zeros(n_cont)
+            n_pred_cont = min(self.scenario.n_predictive, n_cont)
+            low, high = self.scenario.coefficient_range
+            beta[:n_pred_cont] = self.rng.uniform(low, high, size=n_pred_cont)
+
+            # Ground truth for categorical features (embedding effects)
+            beta_embeddings = []
+            n_pred_cat = max(0, self.scenario.n_predictive - n_cont)
+            for i in range(n_cat):
+                if i < n_pred_cat:
+                    cat_effects = self.rng.uniform(low, high, size=cardinality)
+                else:
+                    cat_effects = np.zeros(cardinality)
+                beta_embeddings.append(cat_effects)
+
+            # Compute predictor
+            predictor = X_continuous @ beta
+            for i in range(n_cat):
+                predictor += beta_embeddings[i][X_categorical[:, i]]
+
+        # Generate event times
+        T_true = self._generate_event_times(predictor)
+
+        # Apply censoring
+        T, E = self._apply_censoring(T_true)
+
+        return SurvivalDataEmbedding(
+            X_continuous=X_continuous,
+            X_categorical=X_categorical,
+            categorical_cardinalities=cardinalities,
+            T=T,
+            E=E,
+            T_true=T_true,
+            beta=beta,
+        )
 
     def _generate_covariates(self) -> np.ndarray:
         """Generate covariates based on scenario configuration."""

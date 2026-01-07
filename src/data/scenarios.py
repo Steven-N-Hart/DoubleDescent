@@ -218,6 +218,16 @@ PREDEFINED_SCENARIOS = {
         interaction_strength=0.5,
         quadratic_strength=0.3,
     ),
+    "categorical_embedding": DataScenario(
+        name="categorical_embedding",
+        description="Categorical features for embedding experiments (moderate cardinality)",
+        covariate_type=CovariateType.CATEGORICAL,
+        n_categorical_features=5,
+        cardinality=20,  # Lower cardinality than high_cardinality (100)
+        n_features=20,
+        n_predictive=5,
+        censoring_rate=0.3,
+    ),
 }
 
 

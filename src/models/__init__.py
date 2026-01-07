@@ -1,7 +1,7 @@
 """DeepSurv model implementation and training modules."""
 
 from .config import ModelConfiguration
-from .deepsurv import DeepSurv, cox_ph_loss, DeepSurvLoss
+from .deepsurv import DeepSurv, DeepSurvEmbedding, cox_ph_loss, DeepSurvLoss
 from .trainer import Trainer, train_with_retry
 from .checkpoint import CheckpointManager, save_checkpoint, load_checkpoint
 from .baselines import (
@@ -13,6 +13,7 @@ from .baselines import (
 
 __all__ = [
     "DeepSurv",
+    "DeepSurvEmbedding",
     "ModelConfiguration",
     "cox_ph_loss",
     "DeepSurvLoss",

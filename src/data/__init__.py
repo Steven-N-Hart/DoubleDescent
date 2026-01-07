@@ -2,7 +2,7 @@
 
 from .types import CovariateType, SweepType, ExperimentStatus, RunStatus
 from .scenarios import DataScenario, get_scenario, PREDEFINED_SCENARIOS
-from .generator import SurvivalDataGenerator, SurvivalData, DataSplitter
+from .generator import SurvivalDataGenerator, SurvivalData, SurvivalDataEmbedding, DataSplitter
 from .copula import generate_correlated_uniform, create_ar1_correlation
 from .censoring import calibrate_censoring_rate
 
@@ -19,6 +19,7 @@ __all__ = [
     # Generator
     "SurvivalDataGenerator",
     "SurvivalData",
+    "SurvivalDataEmbedding",
     "DataSplitter",
     # Copula
     "generate_correlated_uniform",

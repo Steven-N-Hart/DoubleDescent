@@ -197,19 +197,24 @@ def _calculate_ibs_manual(
             # Case 1: Event before time t
             if T_i <= t and delta_i == 1:
                 G_Ti = _get_censoring_prob(censoring_probs, times, T_i)
-                if G_Ti > 0:
+                # Use minimum threshold to prevent division by very small numbers
+                if G_Ti > 0.01:
                     bs += (S_t[i] ** 2) / G_Ti
                     n_valid += 1 / G_Ti
 
             # Case 2: Still at risk at time t
             elif T_i > t:
                 G_t = censoring_probs[t_idx]
-                if G_t > 0:
+                # Use minimum threshold to prevent division by very small numbers
+                if G_t > 0.01:
                     bs += ((1 - S_t[i]) ** 2) / G_t
                     n_valid += 1 / G_t
 
         if n_valid > 0:
-            brier_scores.append(bs / n_valid)
+            score = bs / n_valid
+            # Clip to prevent inf values
+            if np.isfinite(score):
+                brier_scores.append(score)
 
     if len(brier_scores) == 0:
         return np.nan
@@ -287,3 +292,60 @@ def _get_censoring_prob(
 
     idx = np.searchsorted(times, t, side="right") - 1
     return censoring_probs[idx]
+
+
+def integrated_brier_score_simple(
+    test_times: np.ndarray,
+    test_events: np.ndarray,
+    risk_scores: np.ndarray,
+    train_times: np.ndarray,
+    train_events: np.ndarray,
+    train_risk_scores: Optional[np.ndarray] = None,
+) -> float:
+    """Simplified IBS calculation directly from risk scores.
+
+    This function estimates survival functions from risk scores using the
+    Breslow estimator, then calculates IBS. Useful when only risk scores
+    are available (e.g., from DeepSurvEmbedding).
+
+    Args:
+        test_times: Test set observed survival times.
+        test_events: Test set event indicators.
+        risk_scores: Predicted risk scores for test set.
+        train_times: Training set times (for baseline hazard estimation).
+        train_events: Training set event indicators.
+        train_risk_scores: Risk scores on training data for Breslow estimation.
+            If None, uses zeros (less accurate but works).
+
+    Returns:
+        Integrated Brier Score value.
+    """
+    from .likelihood import breslow_estimator, compute_survival_function
+
+    # If no training risk scores provided, use zeros
+    if train_risk_scores is None:
+        train_risk_scores = np.zeros(len(train_times))
+
+    # Estimate baseline cumulative hazard using Breslow's method
+    time_points, baseline_cumhaz = breslow_estimator(
+        risk_scores=train_risk_scores,
+        event_times=train_times,
+        event_indicators=train_events,
+    )
+
+    # Compute survival functions for test samples
+    survival_funcs = compute_survival_function(
+        risk_scores=risk_scores,
+        baseline_cumulative_hazard=baseline_cumhaz,
+        time_points=time_points,
+    )
+
+    # Calculate IBS
+    return calculate_integrated_brier_score(
+        survival_functions=survival_funcs,
+        time_points=time_points,
+        event_times_train=train_times,
+        event_indicators_train=train_events,
+        event_times_test=test_times,
+        event_indicators_test=test_events,
+    )

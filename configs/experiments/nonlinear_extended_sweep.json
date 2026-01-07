@@ -1,0 +1,37 @@
+{
+  "$schema": "../schemas/experiment.json",
+  "experiment_id": "nonlinear_extended_001",
+  "name": "Nonlinear Double Descent Extended",
+  "description": "Nonlinear ground truth extended to higher widths (4096, 8192)",
+  "seed": 42,
+  "data": {
+    "name": "nonlinear",
+    "description": "Nonlinear ground truth with interactions and quadratic terms",
+    "n_samples": 1000,
+    "n_features": 20,
+    "n_predictive": 10,
+    "covariate_type": "gaussian",
+    "censoring_rate": 0.3,
+    "nonlinear": true,
+    "interaction_strength": 0.5,
+    "quadratic_strength": 0.3
+  },
+  "model": {
+    "widths": [4096, 8192],
+    "depths": [2],
+    "activation": "relu",
+    "dropout": 0.0,
+    "weight_decay": 0.0
+  },
+  "training": {
+    "epochs": 10000,
+    "batch_size": 256,
+    "learning_rate": 0.001,
+    "optimizer": "adam"
+  },
+  "splits": {
+    "train": 0.6,
+    "val": 0.2,
+    "test": 0.2
+  }
+}
