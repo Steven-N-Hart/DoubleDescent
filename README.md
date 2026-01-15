@@ -1,10 +1,4 @@
-# DoubleDescentThis `README.md` is designed to serve as the landing page for your GitHub repository. It translates the scientific proposal into actionable code documentation, organizing the project into clear modules for data generation, model training, and metric evaluation.
-
 # Survival Double Descent: Stress-Testing Generalization in Time-to-Event Models
-
-[](https://www.python.org/downloads/)
-([https://img.shields.io/badge/License-MIT-yellow.svg](https://www.google.com/search?q=https://img.shields.io/badge/License-MIT-yellow.svg))]([https://opensource.org/licenses/MIT](https://opensource.org/licenses/MIT))
-[](https://www.google.com/search?q=%5Bhttps://github.com/psf/black%5D(https://github.com/psf/black))
 
 ## 📌 Project Overview
 

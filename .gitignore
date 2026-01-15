@@ -220,9 +220,6 @@ manuscript/*.out
 manuscript/*.log
 manuscript/*.synctex.gz
 
-# Manuscript figures (regenerable from scripts/)
-manuscript/figures/
-
 # TensorBoard logs
 tensorboard/
 *.tfevents.*
