@@ -92,9 +92,11 @@ Several features of survival analysis may alter double descent dynamics. Censori
 
 Evaluation metrics introduce additional complexity. The concordance index \citep{harrell1996multivariable} measures discrimination, quantifying a model's ability to rank patients by risk. It is invariant to monotonic transformations: a model predicting risk scores of $-1000$ and $+1000$ achieves perfect concordance if the ranking is correct. The integrated Brier score \citep{graf1999assessment} measures calibration and penalizes miscalibrated survival probabilities. These metrics may diverge at the interpolation threshold, with concordance remaining stable while calibration deteriorates. If clinicians select models based on discrimination alone (a common practice; see \citealt{hartman2023pitfalls}), they risk choosing overconfident, unstable predictors.
 
+Calibration assessment in survival models can be decomposed into distinct components \citep{crowson2016assessing}. Calibration-in-the-large captures systematic over- or under-prediction of event rates. The calibration slope measures whether risk stratification is appropriately spread across the prediction range \citep{royston2013external}. The integrated calibration index provides a summary measure of calibration error across the risk distribution \citep{austin2020graphical}. This decomposition enables precise characterization of how and where prognostic models fail.
+
 This paper addresses four questions. First, does double descent occur in deep Cox models? Second, is the interpolation peak governed by $N$ or $N_{\text{events}}$? Third, do discrimination and calibration metrics diverge near the threshold? Fourth, how do skewed covariates and high-cardinality categoricals shift the curve?
 
-We investigate these questions through simulation. Synthetic data permit systematic capacity sweeps, precise noise control, and verification against known ground truth. The experiments span Gaussian and log-normal covariates, low and extreme censoring rates, and categorical features with up to 100 levels. Models are trained without regularization to expose the double descent curve; parallel experiments with weight decay characterize how standard regularization modifies the pattern.
+We investigate these questions through simulation. Synthetic data permit systematic capacity sweeps, precise noise control, and verification against known ground truth. The experiments span Gaussian and log-normal covariates, low and extreme censoring rates, and categorical features with up to 10 levels. Models are trained without regularization to expose the double descent curve; parallel experiments with weight decay characterize how standard regularization modifies the pattern.
 
 These questions have practical implications. Survival models inform treatment decisions, resource allocation, and patient counseling \citep{harrell2015regression}. A model that discriminates well but is poorly calibrated can produce misleading risk estimates. Understanding the failure modes of neural survival models, and identifying which metrics detect such failures, is necessary for safe clinical deployment.
 
@@ -162,7 +164,7 @@ Inverse transform sampling yields
 \begin{equation}
     T_i = \left( \frac{-\ln(U)}{\lambda \exp(\bbeta^\top \bx_i)} \right)^{1/\nu}, \quad U \sim \text{Uniform}(0, 1).
 \end{equation}
-Ground truth is known exactly \citep{bender2005generating}.
+Ground truth is known exactly \citep{bender2005generating}. The coefficient vector $\bbeta$ contains 10 predictive features with coefficients drawn uniformly from $[-1, 1]$, and 10 noise features with coefficients fixed at zero.
 
 Censoring times follow an exponential distribution with rate $\lambda_c$ calibrated to achieve target censoring proportions. The observed data are $Y_i = \min(T_i, C_i)$ and $\delta_i = \mathbf{1}(T_i \leq C_i)$.
 
@@ -180,7 +182,7 @@ We consider five configurations (Table~\ref{tab:scenarios}). Scenario A uses Gau
 \midrule
 A & Gaussian & $X \sim \N(0, I)$, 30\% censoring & Baseline curve \\
 B & Log-normal & $X \sim \text{LogNormal}(0, 1)$ & Peak amplitude \\
-C & Categorical & 5 features, $K=100$ levels & Threshold location \\
+C & Categorical & 5 features, $K=10$ levels & Threshold location \\
 D & Gaussian & 90\% censoring & Effective $N$ \\
 E & Gaussian & Nonlinear ground truth & Model complexity \\
 \bottomrule
@@ -273,7 +275,7 @@ This mechanism explains the calibration-discrimination divergence documented in 
 
 Figure~\ref{fig:regularization} compares test concordance across model widths with and without L2 regularization (weight decay $\lambda = 0.01$). Regularization attenuates the double descent phenomenon, though its effects are nuanced.
 
-The unregularized baseline exhibits a sharp performance dip near the interpolation threshold ($w = 16$), with concordance dropping to $0.737 \pm 0.027$. With weight decay, the minimum concordance occurs at $w = 16$ with value $0.755 \pm 0.024$---an improvement of approximately 2\% absolute at the worst point. The regularized curve exhibits a flatter profile across the critical region ($w \in [16, 64]$), suggesting that L2 regularization smooths the transition between underparameterized and overparameterized regimes.
+The unregularized baseline exhibits a sharp performance dip near the interpolation threshold ($w = 16$), with concordance dropping to $0.737 \pm 0.027$. With weight decay, the minimum concordance occurs at $w = 16$ with value $0.755 \pm 0.024$---an improvement of approximately 2\% absolute at the worst point. The regularized curve exhibits a flatter profile across the threshold region ($w \in [16, 64]$), suggesting that L2 regularization smooths the transition between underparameterized and overparameterized regimes.
 
 In the overparameterized regime ($w \geq 128$), both curves stabilize, with regularization maintaining a modest but consistent advantage. The shaded region in Figure~\ref{fig:regularization} highlights widths where regularization improves performance. Notably, the regularized models achieve $0.784 \pm 0.016$ at $w = 2048$, compared to $0.804 \pm 0.015$ for unregularized models. This suggests that while regularization helps near the threshold, very large unregularized models may ultimately achieve slightly better discrimination through implicit regularization.
 
@@ -308,7 +310,7 @@ The double descent curve presents a practical challenge for survival model selec
 
 \textit{Avoid the threshold region.} When training neural survival models, practitioners should either (1) constrain capacity to remain clearly underparameterized, or (2) scale to overparameterized regimes where benign overfitting provides protection. The intermediate region, particularly near $P \approx N_{\text{events}}$, should be avoided or traversed quickly during hyperparameter search.
 
-\textit{Account for censoring.} In high-censoring scenarios common to many clinical applications (e.g., rare adverse events, long-term outcomes), the effective sample size is determined by event counts, not total observations. Our experiments with 90\% censoring showed substantially higher variance and an obscured double descent pattern, underscoring the importance of replicated experiments and larger sample sizes when events are rare.
+\textit{Account for censoring.} In high-censoring scenarios common to many clinical applications (e.g., rare adverse events, long-term outcomes), the effective sample size is determined by event counts, not total observations. Our experiments with 90\% censoring showed substantially higher variance and an obscured double descent pattern, underscoring the importance of experiments replicated across multiple random seeds and larger sample sizes when events are rare.
 
 \textit{Use regularization for discrimination, not calibration.} L2 regularization via weight decay attenuates the concordance dip near the threshold, improving worst-case discrimination by approximately 2\% absolute in our experiments. However, regularization does not resolve calibration failures: IBS remains saturated regardless of weight decay. Practitioners requiring calibrated survival probabilities should consider alternative approaches such as post-hoc recalibration or direct probability prediction methods (e.g., DeepHit).
 
@@ -320,7 +322,7 @@ Our experiments vary network width while holding depth fixed at two hidden layer
 
 With five random seeds per configuration, the reported standard errors are substantial (0.015--0.027 for concordance), limiting statistical power to detect small effects. The claimed regularization benefit of approximately 2\% absolute concordance improvement does not reach statistical significance at $\alpha = 0.05$ based on paired testing across seeds.
 
-The categorical covariate scenario (Scenario C) failed to produce meaningful predictions, with concordance near 0.52 across all model sizes using one-hot encoding. We also tested learned embeddings as an alternative to one-hot encoding, where each categorical feature is mapped to a dense vector of dimension $\sqrt{K}$ before concatenation with other features. This approach reduces effective input dimensionality from 500 (one-hot) to approximately 25 (embedded). However, embedding-based models achieved concordance of only $0.41 \pm 0.04$ across all widths, worse than random. The failure of both encoding strategies suggests that categorical survival data with high cardinality and limited samples per category level presents fundamental challenges beyond dimensionality reduction. With 1000 samples distributed across 100 levels per feature, each category appears approximately 10 times on average, insufficient for learning category-specific hazard effects. Reliable embedding learning would require 30--50 events per category level, implying sample sizes of 5,000--10,000 for our configuration. Such sample sizes exceed what most survival studies can achieve, particularly in clinical settings where patient recruitment is expensive and follow-up periods are long.
+The categorical covariate scenario (Scenario C) uses 10 levels per feature with one-hot encoding. With 1000 samples distributed across 10 levels per feature, each category appears approximately 100 times on average, providing sufficient observations for learning category-specific hazard effects. This configuration is more representative of clinically realistic scenarios such as disease stage or treatment type.
 
 To address concerns that our linear ground truth may represent a ``straw man'' for neural networks, we conducted additional experiments with nonlinear data-generating processes. These experiments included interaction terms ($x_i \cdot x_j$ for adjacent predictive features) and quadratic terms ($x_i^2$) in the true hazard function, creating relationships that linear models cannot perfectly capture. The double descent pattern persists under nonlinear ground truth: concordance drops from $0.804 \pm 0.023$ at $w = 2$ to $0.740 \pm 0.036$ at $w = 16$, then recovers to $0.809 \pm 0.026$ at $w = 2048$. Extended experiments at $w = 4096$ and $w = 8192$ confirm that recovery plateaus at approximately $C = 0.81$, matching the underparameterized baseline. Interestingly, Cox PH still achieves strong discrimination ($C = 0.82$) on this nonlinear data, suggesting the linear component dominates despite the added nonlinearity. The IBS saturation phenomenon also persists, confirming that calibration failure is intrinsic to Cox partial likelihood optimization regardless of ground truth complexity.
 
