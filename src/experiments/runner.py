@@ -348,6 +348,9 @@ class ExperimentRunner:
                             "c_index": final.get("c_index", ""),
                             "ibs": final.get("ibs", ""),
                             "nll": final.get("nll", ""),
+                            "cal_slope": final.get("cal_slope", ""),
+                            "cal_large": final.get("cal_large", ""),
+                            "ici": final.get("ici", ""),
                         })
 
         # Write summary
@@ -356,7 +359,8 @@ class ExperimentRunner:
             with open(results_dir / "summary.csv", "w", newline="") as f:
                 writer = csv.DictWriter(
                     f,
-                    fieldnames=["width", "depth", "n_parameters", "c_index", "ibs", "nll"]
+                    fieldnames=["width", "depth", "n_parameters", "c_index", "ibs", "nll",
+                                "cal_slope", "cal_large", "ici"]
                 )
                 writer.writeheader()
                 writer.writerows(summary_rows)

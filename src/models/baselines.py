@@ -19,6 +19,7 @@ except ImportError:
 from ..metrics.concordance import calculate_c_index
 from ..metrics.brier import calculate_integrated_brier_score
 from ..metrics.likelihood import breslow_estimator, compute_survival_function
+from ..metrics.calibration import compute_calibration_metrics
 
 
 @dataclass
@@ -30,13 +31,40 @@ class BaselineResults:
         c_index: Concordance index on test set.
         ibs: Integrated Brier Score on test set (if available).
         nll: Negative log-likelihood (if applicable).
+        calibration_in_the_large: O/E ratio (1.0 = perfect calibration).
+        calibration_slope: Calibration slope (1.0 = perfect).
+        ici: Integrated Calibration Index.
         risk_scores: Predicted risk scores.
     """
     model_name: str
     c_index: float
     ibs: Optional[float] = None
     nll: Optional[float] = None
+    calibration_in_the_large: Optional[float] = None
+    calibration_slope: Optional[float] = None
+    ici: Optional[float] = None
     risk_scores: Optional[np.ndarray] = None
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for serialization."""
+        return {
+            "model_name": self.model_name,
+            "c_index": self.c_index,
+            "ibs": self.ibs,
+            "nll": self.nll,
+            "cal_large": self.calibration_in_the_large,
+            "cal_slope": self.calibration_slope,
+            "ici": self.ici,
+        }
+
+    def to_csv_row(self) -> dict:
+        """Convert to CSV row format."""
+        data = self.to_dict()
+        # Handle None values
+        for key in ["ibs", "nll", "cal_large", "cal_slope", "ici"]:
+            if data[key] is None:
+                data[key] = ""
+        return data
 
 
 class CoxPHBaseline:
@@ -163,7 +191,10 @@ class CoxPHBaseline:
         # C-index
         c_index = calculate_c_index(risk_scores, T_test, E_test)
 
-        # IBS
+        # IBS and survival functions
+        ibs = None
+        surv_funcs = None
+        times = None
         try:
             times, surv_funcs = self.predict_survival_function(X_test)
             ibs = calculate_integrated_brier_score(
@@ -175,12 +206,34 @@ class CoxPHBaseline:
                 E_test,
             )
         except Exception:
-            ibs = None
+            pass
+
+        # Calibration metrics
+        cal_large = None
+        cal_slope = None
+        ici = None
+        try:
+            if surv_funcs is not None and times is not None:
+                cal_result = compute_calibration_metrics(
+                    risk_scores=risk_scores,
+                    survival_functions=surv_funcs,
+                    time_grid=times,
+                    event_times=T_test,
+                    event_indicators=E_test,
+                )
+                cal_large = cal_result.calibration_in_the_large
+                cal_slope = cal_result.calibration_slope
+                ici = cal_result.ici
+        except Exception:
+            pass
 
         return BaselineResults(
             model_name="CoxPH",
             c_index=c_index,
             ibs=ibs,
+            calibration_in_the_large=cal_large,
+            calibration_slope=cal_slope,
+            ici=ici,
             risk_scores=risk_scores,
         )
 
@@ -323,7 +376,10 @@ class RandomSurvivalForestBaseline:
         # C-index
         c_index = calculate_c_index(risk_scores, T_test, E_test)
 
-        # IBS
+        # IBS and survival functions
+        ibs = None
+        surv_funcs = None
+        times = None
         try:
             times, surv_funcs = self.predict_survival_function(X_test)
             ibs = calculate_integrated_brier_score(
@@ -335,12 +391,34 @@ class RandomSurvivalForestBaseline:
                 E_test,
             )
         except Exception:
-            ibs = None
+            pass
+
+        # Calibration metrics
+        cal_large = None
+        cal_slope = None
+        ici = None
+        try:
+            if surv_funcs is not None and times is not None:
+                cal_result = compute_calibration_metrics(
+                    risk_scores=risk_scores,
+                    survival_functions=surv_funcs,
+                    time_grid=times,
+                    event_times=T_test,
+                    event_indicators=E_test,
+                )
+                cal_large = cal_result.calibration_in_the_large
+                cal_slope = cal_result.calibration_slope
+                ici = cal_result.ici
+        except Exception:
+            pass
 
         return BaselineResults(
             model_name="RSF",
             c_index=c_index,
             ibs=ibs,
+            calibration_in_the_large=cal_large,
+            calibration_slope=cal_slope,
+            ici=ici,
             risk_scores=risk_scores,
         )
 

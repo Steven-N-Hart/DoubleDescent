@@ -12,6 +12,7 @@ from .likelihood import (
     breslow_estimator,
     compute_survival_function,
 )
+from .calibration import compute_calibration_metrics
 from .results import MetricResult
 
 
@@ -80,6 +81,7 @@ class MetricEvaluator:
         run_id: str,
         epoch: int,
         compute_ibs: bool = True,
+        compute_calibration: bool = True,
         train_risk_scores: Optional[np.ndarray] = None,
     ) -> MetricResult:
         """Compute all metrics for given risk scores.
@@ -91,6 +93,7 @@ class MetricEvaluator:
             run_id: Run identifier.
             epoch: Training epoch.
             compute_ibs: Whether to compute IBS (slower).
+            compute_calibration: Whether to compute calibration metrics.
             train_risk_scores: Risk scores on training data (for baseline hazard
                 estimation in IBS). If None, uses zeros (less accurate).
 
@@ -118,10 +121,25 @@ class MetricEvaluator:
             nll = np.nan
 
         # Compute IBS if requested
+        ibs = np.nan
+        survival_functions = None
         if compute_ibs:
-            ibs = self._compute_ibs(risk_scores, eval_data, train_risk_scores)
-        else:
-            ibs = np.nan
+            ibs, survival_functions = self._compute_ibs_with_survival(
+                risk_scores, eval_data, train_risk_scores
+            )
+
+        # Compute calibration metrics if requested
+        cal_large = None
+        cal_slope = None
+        ici = None
+        if compute_calibration:
+            cal_result = self._compute_calibration(
+                risk_scores, eval_data, train_risk_scores, survival_functions
+            )
+            if cal_result is not None:
+                cal_large = cal_result.calibration_in_the_large
+                cal_slope = cal_result.calibration_slope
+                ici = cal_result.ici
 
         return MetricResult(
             run_id=run_id,
@@ -130,6 +148,9 @@ class MetricEvaluator:
             c_index=c_index,
             integrated_brier_score=ibs,
             neg_log_likelihood=nll,
+            calibration_in_the_large=cal_large,
+            calibration_slope=cal_slope,
+            ici=ici,
         )
 
     def _compute_ibs(
@@ -148,6 +169,26 @@ class MetricEvaluator:
 
         Returns:
             IBS value.
+        """
+        ibs, _ = self._compute_ibs_with_survival(risk_scores, eval_data, train_risk_scores)
+        return ibs
+
+    def _compute_ibs_with_survival(
+        self,
+        risk_scores: np.ndarray,
+        eval_data: EvaluationData,
+        train_risk_scores: Optional[np.ndarray] = None,
+    ) -> Tuple[float, Optional[np.ndarray]]:
+        """Compute Integrated Brier Score and return survival functions.
+
+        Args:
+            risk_scores: Predicted log-hazard ratios for evaluation data.
+            eval_data: Evaluation data.
+            train_risk_scores: Risk scores for training data (for baseline hazard).
+                If None, uses zeros (original behavior, but less accurate).
+
+        Returns:
+            Tuple of (IBS value, survival_functions array or None on error).
         """
         try:
             # Estimate baseline hazard from training data
@@ -181,10 +222,58 @@ class MetricEvaluator:
                 event_indicators_test=eval_data.E,
             )
 
-            return ibs
+            return ibs, survival_functions
 
         except Exception:
-            return np.nan
+            return np.nan, None
+
+    def _compute_calibration(
+        self,
+        risk_scores: np.ndarray,
+        eval_data: EvaluationData,
+        train_risk_scores: Optional[np.ndarray] = None,
+        survival_functions: Optional[np.ndarray] = None,
+    ):
+        """Compute calibration decomposition metrics.
+
+        Args:
+            risk_scores: Predicted log-hazard ratios for evaluation data.
+            eval_data: Evaluation data.
+            train_risk_scores: Risk scores for training data (for baseline hazard).
+            survival_functions: Pre-computed survival functions (optional).
+
+        Returns:
+            CalibrationResult or None on error.
+        """
+        try:
+            # Compute survival functions if not provided
+            if survival_functions is None:
+                baseline_risk = (
+                    train_risk_scores if train_risk_scores is not None
+                    else np.zeros(len(self.train_data))
+                )
+                _, baseline_cumhaz = breslow_estimator(
+                    risk_scores=baseline_risk,
+                    event_times=self.train_data.T,
+                    event_indicators=self.train_data.E,
+                    time_points=self.time_grid,
+                )
+                survival_functions = compute_survival_function(
+                    risk_scores,
+                    baseline_cumhaz,
+                    self.time_grid,
+                )
+
+            return compute_calibration_metrics(
+                risk_scores=risk_scores,
+                survival_functions=survival_functions,
+                time_grid=self.time_grid,
+                event_times=eval_data.T,
+                event_indicators=eval_data.E,
+            )
+
+        except Exception:
+            return None
 
     def evaluate_all_splits(
         self,
@@ -196,6 +285,7 @@ class MetricEvaluator:
         run_id: str,
         epoch: int,
         compute_ibs: bool = True,
+        compute_calibration: bool = True,
     ) -> Dict[str, MetricResult]:
         """Evaluate metrics on all data splits.
 
@@ -208,6 +298,7 @@ class MetricEvaluator:
             run_id: Run identifier.
             epoch: Training epoch.
             compute_ibs: Whether to compute IBS.
+            compute_calibration: Whether to compute calibration metrics.
 
         Returns:
             Dictionary mapping split name to MetricResult.
@@ -223,6 +314,7 @@ class MetricEvaluator:
                 run_id,
                 epoch,
                 compute_ibs,
+                compute_calibration,
                 train_risk_scores=train_risk,
             ),
             "val": self.evaluate(
@@ -232,6 +324,7 @@ class MetricEvaluator:
                 run_id,
                 epoch,
                 compute_ibs,
+                compute_calibration,
                 train_risk_scores=train_risk,
             ),
             "test": self.evaluate(
@@ -241,6 +334,7 @@ class MetricEvaluator:
                 run_id,
                 epoch,
                 compute_ibs,
+                compute_calibration,
                 train_risk_scores=train_risk,
             ),
         }

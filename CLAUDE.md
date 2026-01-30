@@ -7,6 +7,7 @@ Auto-generated from feature plans. Last updated: 2026-01-04
 Research framework for investigating the Double Descent phenomenon in survival analysis (time-to-event models). Uses synthetic data generation with DeepSurv neural networks to map generalization behavior across under-parameterized to over-parameterized regimes.
 
 ## Active Technologies
+- Python 3.8+ (compatible with 3.8-3.11 per pyproject.toml) + PyTorch >=1.10, scikit-survival >=0.17, lifelines >=0.27, scipy >=1.7, numpy >=1.20 (002-calibration-enhancements)
 
 - **Language**: Python 3.8+ (compatible with PyTorch and scikit-survival)
 - **Deep Learning**: PyTorch >= 1.10.0
@@ -63,6 +64,8 @@ ruff check src/ tests/
 black src/ tests/ --check
 mypy src/
 ```
+### Important
+For long running code, tell me what I need to run manually instead of waiting
 
 ## Code Style
 
@@ -80,6 +83,7 @@ mypy src/
 5. **Sparse Coefficients**: Only first K of N features are predictive in synthetic data
 
 ## Recent Changes
+- 002-calibration-enhancements: Added Python 3.8+ (compatible with 3.8-3.11 per pyproject.toml) + PyTorch >=1.10, scikit-survival >=0.17, lifelines >=0.27, scipy >=1.7, numpy >=1.20
 
 - 001-experiment-framework-design: Initial framework design
 

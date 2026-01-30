@@ -1,0 +1,12 @@
+{
+  "CoxPH": {
+    "model_name": "CoxPH",
+    "c_index": 0.8005843681519357,
+    "ibs": NaN
+  },
+  "RSF": {
+    "model_name": "RSF",
+    "c_index": 0.775018261504748,
+    "ibs": NaN
+  }
+}

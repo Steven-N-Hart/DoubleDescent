@@ -7,11 +7,15 @@
 #   3. Figure generation
 #
 # Usage:
-#   ./scripts/run_all_analyses.sh              # Run everything
+#   ./scripts/run_all_analyses.sh              # Run everything (sequential)
+#   ./scripts/run_all_analyses.sh --parallel   # Run experiments in parallel
+#   ./scripts/run_all_analyses.sh -j 4         # Parallel with max 4 concurrent jobs
 #   ./scripts/run_all_analyses.sh --dry-run    # Show what would be run
 #   ./scripts/run_all_analyses.sh --resume     # Resume interrupted runs
 
 set -e  # Exit on error
+
+source .venv/bin/activate
 
 # Configuration
 SEEDS="5"                          # Number of seeds per scenario
@@ -26,6 +30,8 @@ RESUME=false
 SKIP_EXPERIMENTS=false
 SKIP_BASELINES=false
 SKIP_FIGURES=false
+PARALLEL=false
+MAX_PARALLEL=5  # Default: run up to 5 experiments simultaneously
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -51,6 +57,15 @@ while [[ $# -gt 0 ]]; do
             ;;
         --seeds)
             SEEDS="$2"
+            shift 2
+            ;;
+        --parallel|-p)
+            PARALLEL=true
+            shift
+            ;;
+        --max-parallel|-j)
+            PARALLEL=true
+            MAX_PARALLEL="$2"
             shift 2
             ;;
         *)
@@ -95,6 +110,45 @@ run_cmd() {
 # PHASE 1: Run Multi-Seed Experiments
 # ============================================================================
 
+run_single_experiment() {
+    local config="$1"
+    local description="$2"
+    local config_path="configs/experiments/${config}.json"
+    local log_file="$OUTPUT_DIR/logs/${config}.log"
+
+    mkdir -p "$OUTPUT_DIR/logs"
+
+    if [ ! -f "$config_path" ]; then
+        echo "[WARNING] Config not found: $config_path - skipping" >> "$log_file"
+        return 1
+    fi
+
+    echo "[INFO] Starting: $description ($config)" >> "$log_file"
+
+    RESUME_FLAG=""
+    if [ "$RESUME" = true ]; then
+        RESUME_FLAG="--resume"
+    fi
+
+    python scripts/run_multi_seed.py \
+        --config "$config_path" \
+        --seeds "$SEEDS" \
+        --output-dir "$OUTPUT_DIR" \
+        --device "$DEVICE" \
+        $RESUME_FLAG >> "$log_file" 2>&1
+
+    local status=$?
+    if [ $status -eq 0 ]; then
+        echo "[SUCCESS] Completed: $description" >> "$log_file"
+    else
+        echo "[ERROR] Failed: $description (exit code: $status)" >> "$log_file"
+    fi
+    return $status
+}
+
+export -f run_single_experiment
+export SEEDS OUTPUT_DIR DEVICE RESUME
+
 run_experiments() {
     log_info "=========================================="
     log_info "PHASE 1: Running Multi-Seed Experiments"
@@ -109,40 +163,91 @@ run_experiments() {
         "categorical_sweep:Categorical Features"
     )
 
-    RESUME_FLAG=""
-    if [ "$RESUME" = true ]; then
-        RESUME_FLAG="--resume"
+    if [ "$PARALLEL" = true ] && [ "$DRY_RUN" = false ]; then
+        log_info "Running experiments in PARALLEL (max $MAX_PARALLEL jobs)"
+        mkdir -p "$OUTPUT_DIR/logs"
+
+        # Build job list
+        job_args=()
+        for exp in "${EXPERIMENTS[@]}"; do
+            config="${exp%%:*}"
+            description="${exp##*:}"
+            config_path="configs/experiments/${config}.json"
+            if [ -f "$config_path" ]; then
+                job_args+=("$config" "$description")
+                log_info "  Queued: $description"
+            else
+                log_warn "Config not found: $config_path - skipping"
+            fi
+        done
+
+        # Run in parallel using GNU parallel or xargs
+        if command -v parallel &> /dev/null; then
+            printf '%s\n' "${job_args[@]}" | parallel -N2 -j "$MAX_PARALLEL" run_single_experiment {1} {2}
+        else
+            # Fallback: simple background jobs with job control
+            local pids=()
+            local running=0
+            for ((i=0; i<${#job_args[@]}; i+=2)); do
+                config="${job_args[$i]}"
+                description="${job_args[$((i+1))]}"
+
+                run_single_experiment "$config" "$description" &
+                pids+=($!)
+                ((running++))
+
+                # Wait if we've hit max parallel jobs
+                if [ $running -ge $MAX_PARALLEL ]; then
+                    wait -n 2>/dev/null || wait "${pids[0]}"
+                    pids=("${pids[@]:1}")
+                    ((running--))
+                fi
+            done
+
+            # Wait for remaining jobs
+            for pid in "${pids[@]}"; do
+                wait "$pid"
+            done
+        fi
+
+        log_success "All parallel experiments completed. Logs in: $OUTPUT_DIR/logs/"
+    else
+        # Sequential execution (original behavior)
+        RESUME_FLAG=""
+        if [ "$RESUME" = true ]; then
+            RESUME_FLAG="--resume"
+        fi
+
+        for exp in "${EXPERIMENTS[@]}"; do
+            config="${exp%%:*}"
+            description="${exp##*:}"
+
+            config_path="configs/experiments/${config}.json"
+
+            if [ ! -f "$config_path" ]; then
+                log_warn "Config not found: $config_path - skipping"
+                continue
+            fi
+
+            log_info "Running: $description ($config)"
+            log_info "  Config: $config_path"
+            log_info "  Seeds: $SEEDS"
+
+            cmd="python scripts/run_multi_seed.py \\
+                --config $config_path \\
+                --seeds $SEEDS \\
+                --output-dir $OUTPUT_DIR \\
+                --device $DEVICE \\
+                $RESUME_FLAG"
+
+            run_cmd "$cmd"
+
+            if [ "$DRY_RUN" = false ]; then
+                log_success "Completed: $description"
+            fi
+            echo ""
+        done
     fi
-
-    for exp in "${EXPERIMENTS[@]}"; do
-        config="${exp%%:*}"
-        description="${exp##*:}"
-
-        config_path="configs/experiments/${config}.json"
-
-        if [ ! -f "$config_path" ]; then
-            log_warn "Config not found: $config_path - skipping"
-            continue
-        fi
-
-        log_info "Running: $description ($config)"
-        log_info "  Config: $config_path"
-        log_info "  Seeds: $SEEDS"
-
-        cmd="python scripts/run_multi_seed.py \\
-            --config $config_path \\
-            --seeds $SEEDS \\
-            --output-dir $OUTPUT_DIR \\
-            --device $DEVICE \\
-            $RESUME_FLAG"
-
-        run_cmd "$cmd"
-
-        if [ "$DRY_RUN" = false ]; then
-            log_success "Completed: $description"
-        fi
-        echo ""
-    done
 }
 
 # ============================================================================
@@ -207,6 +312,7 @@ main() {
     log_info "  Output directory: $OUTPUT_DIR"
     log_info "  Device: $DEVICE"
     log_info "  Resume: $RESUME"
+    log_info "  Parallel: $PARALLEL (max $MAX_PARALLEL jobs)"
     echo ""
 
     START_TIME=$(date +%s)

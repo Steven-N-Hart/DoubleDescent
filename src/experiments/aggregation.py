@@ -79,7 +79,8 @@ def aggregate_multi_seed_results(
     common_widths = sorted(set(all_widths[0]))
 
     # Aggregate metrics for each width
-    metrics = ["c_index", "ibs", "nll"]
+    # Core metrics plus calibration decomposition metrics
+    metrics = ["c_index", "ibs", "nll", "cal_large", "cal_slope", "ici"]
     aggregated_data = {
         "width": [],
         "depth": [],
@@ -150,7 +151,10 @@ def aggregate_multi_seed_results(
         writer.writerows(rows)
 
     # Also write a simple summary (compatible with existing format)
-    simple_fieldnames = ["width", "depth", "n_parameters", "c_index", "ibs", "nll"]
+    simple_fieldnames = [
+        "width", "depth", "n_parameters", "c_index", "ibs", "nll",
+        "cal_large", "cal_slope", "ici"
+    ]
     simple_rows = []
     for i in range(len(aggregated_data["width"])):
         simple_rows.append({
@@ -160,6 +164,9 @@ def aggregate_multi_seed_results(
             "c_index": aggregated_data["c_index_mean"][i],
             "ibs": aggregated_data["ibs_mean"][i],
             "nll": aggregated_data["nll_mean"][i],
+            "cal_large": aggregated_data["cal_large_mean"][i],
+            "cal_slope": aggregated_data["cal_slope_mean"][i],
+            "ici": aggregated_data["ici_mean"][i],
         })
 
     with open(agg_dir / "results" / "summary_means.csv", "w", newline="") as f:

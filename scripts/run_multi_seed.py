@@ -23,7 +23,12 @@ from src.experiments.runner import run_experiment
 from src.experiments.aggregation import aggregate_multi_seed_results
 
 
-DEFAULT_SEEDS = [42, 123, 456, 789, 1011]
+DEFAULT_SEEDS = [
+    42, 123, 456, 789, 1011,           # Original 5
+    2024, 2025, 2026, 3141, 2718,      # Set 2 (years + mathematical constants)
+    1618, 1414, 1732, 9999, 8888,      # Set 3
+    7777, 6666, 5555, 4444, 3333,      # Set 4
+]
 
 
 def parse_args() -> argparse.Namespace:
