@@ -1,5 +1,6 @@
 """Functions for computing calibration decomposition metrics."""
 
+import warnings
 import numpy as np
 import pandas as pd
 from lifelines import CoxPHFitter
@@ -76,17 +77,29 @@ def integrated_calibration_index(
         ICI value (lower is better, 0 = perfect calibration).
     """
     try:
+        # Check for degenerate predictions (all same value or too few unique)
+        unique_preds = np.unique(predicted_probs)
+        if len(unique_preds) < 3:
+            return np.nan
+
         # Sort by predicted probability
         sorted_idx = np.argsort(predicted_probs)
         pred_sorted = predicted_probs[sorted_idx]
         obs_sorted = observed_events[sorted_idx]
 
         # LOWESS smoothing to get calibration curve
-        smoothed = lowess(obs_sorted, pred_sorted, frac=0.3, return_sorted=False)
+        # Suppress warnings from lowess when there are numerical issues
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            smoothed = lowess(obs_sorted, pred_sorted, frac=0.3, return_sorted=False)
+
+        # Check for NaN in smoothed values
+        if np.any(np.isnan(smoothed)):
+            return np.nan
 
         # ICI = weighted mean absolute difference
         ici = np.mean(np.abs(pred_sorted - smoothed))
-        return ici
+        return ici if np.isfinite(ici) else np.nan
     except Exception:
         return np.nan
 

@@ -36,6 +36,8 @@
 
 % Supplementary
 \usepackage{xcolor}
+\usepackage{orcidlink}
+\usepackage{authblk}
 
 % ============================================================================
 % CUSTOM COMMANDS
@@ -56,7 +58,10 @@
 
 \title{The Survival Double Descent: Generalization Dynamics of Deep Neural Networks in Time-to-Event Analysis}
 
-\author{Steven N. Hart, PhD, ACHIP\thanks{Steven N. Hart is Associate Professor, Department of Laboratory Medicine and Pathology, and Department of Quantitative Health Sciences, Mayo Clinic, Rochester, MN 55905 (E-mail: hart.steven@mayo.edu).} \and Ann L. Oberg, PhD\thanks{Ann L. Oberg is Professor, Department of Quantitative Health Sciences, Mayo Clinic, Rochester, MN 55905.}}
+\author[1,2]{Steven N. Hart, PhD, ACHIP\textsuperscript{\texttrademark} \orcidlink{0000-0001-7714-2734}\thanks{Corresponding author: hart.steven@mayo.edu}}
+\author[2]{Ann L. Oberg, PhD}
+\affil[1]{Department of Laboratory Medicine and Pathology, Mayo Clinic, Rochester, MN 55905}
+\affil[2]{Department of Quantitative Health Sciences, Mayo Clinic, Rochester, MN 55905}
 
 \date{}
 
@@ -68,16 +73,21 @@
 
 \maketitle
 
+\clearpage
+
 % ----------------------------------------------------------------------------
 % ABSTRACT
 % ----------------------------------------------------------------------------
 \begin{abstract}
-Recent work on double descent has challenged classical bias–variance tradeoffs, showing that test error can decrease, increase sharply near the interpolation threshold, and then decrease again as model capacity grows. This phenomenon has been extensively documented in regression and classification, but its relevance to survival analysis remains unclear. Survival data are subject to censoring, which obscures true event times, and widely used models such as the Cox proportional hazards model are optimized via partial likelihoods that emphasize ranking rather than calibrated risk estimation. It is therefore unknown whether double descent arises in this setting, how censoring influences its manifestation, or how it interacts with standard performance metrics.
+Recent work on double descent has challenged classical bias–variance tradeoffs, showing that test error can decrease, increase sharply near the interpolation threshold, and then decrease again as model capacity grows. This phenomenon has been documented in regression and classification, but its relevance to survival analysis remains unclear. Survival data are subject to censoring, which obscures true event times, and widely used models such as the Cox proportional hazards model are optimized via partial likelihoods that emphasize ranking rather than calibrated risk estimation. It is therefore unknown whether double descent arises in this setting, how censoring influences its manifestation, or how it interacts with standard performance metrics.
 
-We investigate these questions using synthetic survival data generated from Weibull hazards with controlled censoring, allowing systematic variation of model capacity from underparameterized to highly overparameterized regimes. Our experiments address three specific questions: (i) how censoring affects the location and shape of the interpolation peak, (ii) whether discrimination metrics such as the concordance index fail to detect calibration errors revealed by the integrated Brier score, and (iii) whether non-Gaussian covariate distributions alter the observed behavior.
+We investigate these questions using synthetic survival data generated from Weibull hazards with controlled censoring, allowing systematic variation of model capacity from under to over parameterized regimes. 
 
-We find that while discrimination deteriorates near the interpolation threshold and subsequently recovers as model capacity increases, calibration (i.e. integrated Brier score) plateaus at a constant level in the overparameterized regime, largely independent of regularization strength. This decoupling between discrimination and calibration persists even under strong $\ell_2$ regularization, suggesting it is a structural consequence of the Cox partial likelihood rather than an optimization artifact. These results highlight limitations of discrimination-based model selection in survival analysis and underscore the need for calibration-aware evaluation in high-capacity prognostic models.
+While we verified double descent exists in survival models, calibration plateaus and decouples from discrimination, even under strong $\ell_2$ regularization. This decoupling arises because the Cox partial likelihood optimizes rankings rather than magnitudes, producing extreme risk scores that break the Breslow estimator used to derive survival probabilities. These results highlight limitations of discrimination-based model selection in survival analysis and underscore the need for calibration-aware evaluation in high-capacity prognostic models.
 \end{abstract}
+
+\vspace{1em}
+\noindent\textbf{Keywords:} double descent; survival analysis; Cox proportional hazards; neural networks; model calibration
 
 \clearpage
 
@@ -88,11 +98,11 @@ We find that while discrimination deteriorates near the interpolation threshold 
 
 The bias-variance trade-off has anchored statistical learning theory for decades \citep{hastie2009elements}. Increasing model complexity reduces bias while increasing variance; optimal generalization requires balancing these competing forces. This principle motivated the development of model selection criteria such as cross-validation and regularization methods \citep{tibshirani1996regression}.
 
-Deep learning has challenged this framework. Networks with billions of parameters generalize well despite $p \gg n$ \citep{zhang2021understanding}. \citet{belkin2019reconciling} termed this the double descent phenomenon; \citet{nakkiran2021deep} documented it across architectures and datasets. The pattern proceeds in three stages. Small models underfit. At the interpolation threshold, where capacity just suffices to memorize training data, test error peaks sharply. The model fits noise exactly, but with a unique, highly oscillatory solution. Beyond this threshold, test error decreases again, often falling below the classical minimum. Gradient descent favors minimum-norm solutions when infinitely many interpolants exist \citep{bartlett2020benign}, and this implicit regularization enables generalization in overparameterized models.
+Deep learning has challenged this framework. Networks with billions of parameters generalize well despite $p \gg n$ \citep{zhang2021understanding}. \citet{belkin2019reconciling} termed this the double descent phenomenon; \citet{nakkiran2021deep} documented it across architectures and datasets. The pattern proceeds in three stages. In the first stage, small models underfit. The second stage is at the interpolation threshold, where capacity just manages to memorize training data, test error peaks sharply. The model fits noise exactly, but with a unique, highly unstable solution. Beyond this threshold is the final stage, where test error decreases again, often falling below the classical minimum. Gradient descent favors minimum-norm solutions when infinitely many interpolants exist \citep{bartlett2020benign}, and this implicit regularization enables generalization in overparameterized models.
 
-Survival analysis remains outside this literature. Neural network methods for time-to-event data, including DeepSurv \citep{katzman2018deepsurv}, DeepHit \citep{lee2018deephit}, and related architectures, now appear routinely in clinical research \citep{wiegrebe2024deep}. However, no systematic investigation has established whether double descent occurs in this setting. \citet{liu2025understanding} provide preliminary theory suggesting it does, though possibly in modified form: the second descent may be attenuated, and benign overfitting, the phenomenon where interpolating models generalize well despite fitting training noise, may not fully materialize.
+Survival analysis, however, remains outside this literature. Neural network methods for time-to-event data, including DeepSurv \citep{katzman2018deepsurv}, DeepHit \citep{lee2018deephit}, and related architectures, now appear routinely in clinical research \citep{wiegrebe2024deep}. However, no systematic investigation has established whether double descent occurs in this setting. \citet{liu2025understanding} provide preliminary theory suggesting it does, though possibly in modified form: the second descent may be attenuated, and benign overfitting (the phenomenon where interpolating models generalize well despite fitting training noise) may not fully materialize.
 
-Several features of survival analysis may alter double descent dynamics. Censoring reduces available information: a patient lost to follow-up contributes only a lower bound on survival time, not a precise measurement. The Cox partial likelihood \citep{cox1972regression} optimizes rankings rather than predictions, and extreme risk scores ($\hat{\eta} \to \pm\infty$) maximize the likelihood for separable data. These properties produce an unusual loss geometry. Whether the interpolation threshold depends on total sample size $N$ or on the number of observed events $N_{\text{events}}$ remains an open question.
+Several features of survival analysis may alter double descent dynamics. Censoring reduces available information: a patient lost to follow-up contributes only a lower bound on survival time, not a precise measurement. The Cox partial likelihood \citep{cox1972regression} optimizes rankings rather than predictions, and extreme risk scores ($\hat{\eta} \to \pm\infty$) maximize the likelihood for separable data, producing an unusual loss geometry. Together, these features decouple model capacity from the amount of fully observed outcome information, complicating the definition of interpolation in survival models. Whether the interpolation threshold is governed by the total sample size $N$ or by the number of observed events $N_{\text{events}}$ therefore remains an open question.
 
 Evaluation metrics introduce additional complexity. The concordance index \citep{harrell1996multivariable} measures discrimination, quantifying a model's ability to rank patients by risk. It is invariant to monotonic transformations: a model predicting risk scores of $-1000$ and $+1000$ achieves perfect concordance if the ranking is correct. The integrated Brier score \citep{graf1999assessment} measures calibration and penalizes miscalibrated survival probabilities. These metrics may diverge at the interpolation threshold, with concordance remaining stable while calibration deteriorates. If clinicians select models based on discrimination alone (a common practice; see \citealt{hartman2023pitfalls}), they risk choosing overconfident, unstable predictors.
 
@@ -129,7 +139,7 @@ The Cox proportional hazards model \citep{cox1972regression} specifies the hazar
 \end{equation}
 where $\mathcal{R}_i = \{j : Y_j \geq Y_i\}$ is the risk set at time $Y_i$.
 
-Three properties of the Cox partial likelihood are relevant to double descent \citep{liu2025understanding}. The likelihood depends only on the ranking of risk scores within risk sets, not on their magnitudes. For separable data, the optimal weights diverge to $\pm\infty$. Censored observations contribute to risk sets but not to the likelihood product, reducing the effective sample size.
+Three properties of the Cox partial likelihood are relevant to double descent \citep{liu2025understanding}. First, the likelihood depends only on the ranking of risk scores within risk sets, not on their magnitudes. Second, for separable data the optimal weights diverge to $\pm\infty$. Finally, censored observations contribute to risk sets but not to the likelihood product, reducing the effective sample size.
 
 \subsection{Evaluation Metrics}
 
@@ -145,7 +155,9 @@ The Brier score at time $t$ \citep{graf1999assessment} is defined as
 \end{equation}
 where $w_i(t)$ are inverse probability of censoring weights \citep{gerds2006consistent}. The integrated Brier score averages over a time interval: $\text{IBS} = t_{\max}^{-1} \int_0^{t_{\max}} \text{BS}(t) \, dt$. Unlike concordance (where higher is better), lower IBS indicates better calibration. The Brier score penalizes miscalibrated probability estimates.
 
-At the interpolation threshold, we hypothesize that concordance remains stable because correct rankings may persist even as risk score magnitudes become extreme. The integrated Brier score, however, should increase due to miscalibrated survival curves. Model selection based solely on concordance would fail to detect this deterioration.
+Computing IBS requires survival probability estimates $\hat{S}(t | \bx)$. For Cox models, these are obtained via the Breslow estimator \citep{breslow1972contribution}, which estimates the cumulative baseline hazard $\hat{H}_0(t)$ from the data and combines it with individual risk scores: $\hat{S}(t | \bx) = \exp(-\hat{H}_0(t) \exp(\hat{\eta}))$. This estimator assumes risk scores are well-behaved; when scores become extreme, the resulting survival probabilities degenerate toward 0 or 1.
+
+At the interpolation threshold, we hypothesize that concordance may recover in the overparameterized regime because correct rankings can persist even as risk score magnitudes become extreme. The integrated Brier score, however, should increase due to miscalibrated survival curves. Model selection based solely on concordance would fail to detect this deterioration.
 
 % ----------------------------------------------------------------------------
 % 3. METHODS
@@ -172,7 +184,7 @@ Censoring times follow an exponential distribution with rate $\lambda_c$ calibra
 
 \subsection{Scenarios}
 
-We consider five configurations (Table~\ref{tab:scenarios}). Scenario A uses Gaussian covariates with 30\% censoring as a baseline. Scenario B uses log-normal covariates to test whether leverage points amplify the interpolation peak. Scenario C includes five categorical features with 10 levels each to test threshold shifts from one-hot encoding. Scenario D uses 90\% censoring to test whether the peak location depends on $N_{\text{events}}$ rather than $N$. Scenario E uses nonlinear ground truth with interaction terms ($x_i \cdot x_{i+1}$) and quadratic terms ($x_i^2$) to test whether double descent persists when linear models are insufficient.
+We consider five configurations (Table~\ref{tab:scenarios}). Scenario A uses Gaussian covariates with 30\% censoring as a baseline. Scenario B uses log-normal covariates to test whether leverage points amplify the interpolation peak. Scenario C includes five categorical features with 10 levels each (50 one-hot encoded features) to test how categorical covariates interact with model capacity. Scenario D uses 90\% censoring to test whether the peak location depends on $N_{\text{events}}$ rather than $N$. Scenario E uses nonlinear ground truth with interaction terms ($x_i \cdot x_{i+1}$) and quadratic terms ($x_i^2$) to test whether double descent persists when linear models are insufficient.
 
 \begin{table}[ht]
 \centering
@@ -184,7 +196,7 @@ We consider five configurations (Table~\ref{tab:scenarios}). Scenario A uses Gau
 \midrule
 A & Gaussian & $X \sim \N(0, I)$, 30\% censoring & Baseline curve \\
 B & Log-normal & $X \sim \text{LogNormal}(0, 1)$ & Peak amplitude \\
-C & Categorical & 5 features, $K=10$ levels & Threshold location \\
+C & Categorical & 5 features, $K=10$ levels & Categorical covariates \\
 D & Gaussian & 90\% censoring & Effective $N$ \\
 E & Gaussian & Nonlinear ground truth & Model complexity \\
 \bottomrule
@@ -197,15 +209,21 @@ The network architecture is a multi-layer perceptron with fixed depth and variab
 
 To observe the double descent phenomenon without confounding effects, we train without explicit regularization: the Adam optimizer runs for 10,000 epochs with batch size 256 and learning rate 0.001, with no early stopping, weight decay, or dropout. Validation data are used to track the epoch with minimum validation IBS for analysis, though all models complete full training. Parallel experiments include weight decay ($\lambda = 0.01$) to characterize how regularization modifies the curve.
 
-All networks use Xavier uniform initialization. The Adam optimizer uses default hyperparameters ($\beta_1 = 0.9$, $\beta_2 = 0.999$, $\epsilon = 10^{-8}$). No gradient clipping, learning rate scheduling, or early stopping is applied. Each configuration trains for exactly 10,000 epochs. Five random seeds (42, 123, 456, 789, 1011) are used for each experimental condition.
+All networks use Xavier uniform initialization. The Adam optimizer uses default hyperparameters ($\beta_1 = 0.9$, $\beta_2 = 0.999$, $\epsilon = 10^{-8}$). No gradient clipping, learning rate scheduling, or early stopping is applied. Each configuration trains for exactly 10,000 epochs. Twenty random seeds are used for each experimental condition to ensure robust uncertainty quantification.
 
 We hold depth constant at two hidden layers and sweep width over $w \in \{2, 4, \ldots, 2048\}$ in powers of two, producing parameter counts spanning approximately $0.1N$ to $100N$ for $N = 1000$ samples.
+
+\subsection{Baseline Models}
+
+We compare neural networks against two classical survival methods chosen to isolate different sources of performance differences. Cox proportional hazards regression \citep{cox1972regression} shares the same partial likelihood objective as DeepSurv but uses linear parameterization; differences therefore reflect the effect of neural network capacity rather than the choice of loss function. Random survival forest (RSF) \citep{ishwaran2008random} uses an entirely different approach based on tree ensembles and does not optimize Cox partial likelihood; this baseline tests whether calibration issues are specific to Cox-based methods or generalizable to survival models more broadly.
+
+Cox PH is fit using the \texttt{lifelines} implementation with default settings. RSF is fit using \texttt{scikit-survival} with 100 trees and default hyperparameters. Both baselines are trained on the same data splits as the neural networks and evaluated using identical metrics.
 
 \subsection{Evaluation}
 
 Data are partitioned into training (60\%, $n=600$), validation (20\%, $n=200$), and test (20\%, $n=200$) sets. We compute concordance index, integrated Brier score, and negative log partial likelihood on the held-out test set.
 
-Each configuration is replicated across multiple random seeds. We report means and standard deviations, the location of the interpolation peak, peak magnitude relative to the classical minimum, and the divergence between concordance and integrated Brier score at the threshold.
+Each configuration is replicated across 20 random seeds. We report means and standard deviations, the location of the interpolation peak, peak magnitude relative to the classical minimum, and the divergence between concordance and integrated Brier score at the threshold.
 
 % ----------------------------------------------------------------------------
 % 4. RESULTS
@@ -214,20 +232,18 @@ Each configuration is replicated across multiple random seeds. We report means a
 
 \subsection{Baseline Double Descent Curve}
 
-Figure~\ref{fig:double_descent} displays the concordance index as a function of model capacity for Scenario A (Gaussian covariates, 30\% censoring), aggregated across twenty random seeds. Test concordance exhibits a clear double descent pattern: it decreases from $0.756 \pm 0.116$ at $w = 2$ to a minimum of $0.701 \pm 0.046$ at $w = 16$, then recovers to $0.785 \pm 0.037$ at $w = 2048$. The shaded region represents one standard deviation across seeds.
+Figure~\ref{fig:double_descent} summarizes the main findings for Scenario A (Gaussian covariates, 30\% censoring), aggregated across twenty random seeds. Panel A displays test concordance as a function of model width, revealing clear double descent. Concordance decreases from $0.805 \pm 0.035$ at $w = 2$ to a minimum of $0.710 \pm 0.051$ at $w = 16$, then recovers to $0.784 \pm 0.037$ at $w = 2048$. Horizontal dashed lines indicate baseline performance: Cox PH ($C = 0.816$) and RSF ($C = 0.773$). The smallest neural network matches RSF discrimination, while the largest approaches but does not reach Cox PH. The vertical dashed line marks the interpolation threshold at 625 parameters, a count lying between the training sample size ($N = 600$) and the number of observed events ($N_{\text{events}} \approx 420$). Panel B shows that calibration does not follow this pattern: IBS saturates at approximately $0.52$ for all neural networks regardless of capacity, compared to $0.11$ for Cox PH and $0.15$ for RSF. Panel C normalizes both metrics, making explicit that discrimination recovers in the overparameterized regime while calibration does not. Shaded regions represent one standard deviation across seeds.
 
-The vertical dashed line marks the interpolation threshold. The test error peak (minimum concordance) occurs at width $w = 16$, corresponding to 625 parameters. This count lies between the training sample size ($N = 600$) and the number of observed events ($N_{\text{events}} \approx 420$ under 30\% censoring). Our data cannot distinguish whether the threshold is governed by $N$ or $N_{\text{events}}$; both explanations are consistent with the observed peak location. The star marker highlights this critical point.
-
-The pattern confirms double descent occurs in survival analysis. The concordance recovery in the overparameterized regime ($w > 64$) is substantial: at $w = 2048$, concordance reaches 0.785, exceeding the baseline of 0.756 observed at $w = 2$. Whether this constitutes complete benign overfitting or an attenuated form, as predicted by \citet{liu2025understanding} for Cox partial likelihood, depends on one's baseline expectation. The recovery to and beyond initial performance suggests the phenomenon is not fundamentally blocked, though the ranking-based loss geometry may still differ from squared error in ways that affect convergence.
+The concordance recovery beyond $w = 64$ confirms double descent occurs in survival analysis. At $w = 2048$, concordance reaches $0.784 \pm 0.037$, recovering from the threshold minimum of 0.710; this recovered value is not significantly different from the baseline of $0.805 \pm 0.035$ at $w = 2$ (Welch's $t$-test, $t = 1.84$, $p = 0.07$). The calibration failure, however, represents a distinct pathology not predicted by standard double descent theory; we examine its mechanism in Section~\ref{sec:mechanism}.
 
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.85\textwidth]{figures/fig1_main_finding_with_errors.pdf}
-\caption{Main findings: calibration failure in neural Cox models. \textbf{(A)} Classical methods (Cox PH, RSF) outperform neural networks on calibration (IBS) despite comparable discrimination (C-index). \textbf{(B)} Discrimination exhibits double descent: test C-index drops from $0.756 \pm 0.116$ to $0.701 \pm 0.046$ at the interpolation threshold ($w = 16$, star), then recovers to $0.785 \pm 0.037$. \textbf{(C)} Calibration fails universally: IBS saturates at approximately $0.52$ for all neural networks regardless of capacity, compared to approximately $0.11$ for Cox PH. \textbf{(D)} Normalized comparison shows discrimination recovers (blue) while calibration does not (red). Shaded regions show $\pm$1 SD across twenty seeds.}
+\caption{Main findings: calibration failure in neural Cox models. \textbf{(A)} Discrimination exhibits double descent: test C-index drops from $0.805 \pm 0.035$ to $0.710 \pm 0.051$ at the interpolation threshold ($w = 16$, star), then recovers to $0.784 \pm 0.037$. Horizontal lines show Cox PH and RSF baselines for reference. \textbf{(B)} Calibration fails universally: IBS saturates at approximately $0.52$ for all neural networks regardless of capacity, compared to approximately $0.11$ for Cox PH and $0.15$ for RSF (horizontal lines). \textbf{(C)} Normalized comparison shows discrimination recovers (blue) while calibration does not (red). Shaded regions show $\pm$1 SD across twenty seeds.}
 \label{fig:double_descent}
 \end{figure}
 
-Table~\ref{tab:baselines} compares neural network performance against classical survival baselines. Cox proportional hazards achieves $C = 0.816 \pm 0.035$ with IBS of $0.113 \pm 0.013$, while the random survival forest achieves $C = 0.773 \pm 0.031$ with IBS of $0.151 \pm 0.006$. The smallest neural network ($w = 2$) achieves $C = 0.756$, substantially below Cox PH ($C = 0.816$), and exhibits worse calibration (IBS $= 0.387$). This calibration gap persists across all neural network sizes, suggesting a limitation of Cox partial likelihood optimization: the ranking-based loss produces well-ordered risk scores but poorly calibrated survival probabilities.
+Table~\ref{tab:baselines} compares neural network performance against classical survival baselines. Cox proportional hazards achieves $C = 0.816 \pm 0.035$ with IBS of $0.113 \pm 0.013$, while the random survival forest achieves $C = 0.773 \pm 0.031$ with IBS of $0.151 \pm 0.006$. The smallest neural network ($w = 2$) achieves $C = 0.805$, comparable to Cox PH ($C = 0.816$), but exhibits worse calibration (IBS $= 0.448$ vs. $0.113$). This calibration gap persists across all neural network sizes, suggesting a limitation of Cox partial likelihood optimization: the ranking-based loss produces well-ordered risk scores but poorly calibrated survival probabilities.
 
 \begin{table}[ht]
 \centering
@@ -240,27 +256,50 @@ Table~\ref{tab:baselines} compares neural network performance against classical 
 Cox PH & $0.816 \pm 0.035$ & $0.113 \pm 0.013$ \\
 Random Survival Forest & $0.773 \pm 0.031$ & $0.151 \pm 0.006$ \\
 \midrule
-DeepSurv ($w=2$) & $0.756 \pm 0.116$ & $0.387 \pm 0.124$ \\
-DeepSurv ($w=16$, threshold) & $0.701 \pm 0.046$ & $0.523 \pm 0.035$ \\
-DeepSurv ($w=2048$) & $0.785 \pm 0.037$ & $0.523 \pm 0.036$ \\
+DeepSurv ($w=2$) & $0.805 \pm 0.035$ & $0.448 \pm 0.054$ \\
+DeepSurv ($w=16$, threshold) & $0.710 \pm 0.051$ & $0.523 \pm 0.035$ \\
+DeepSurv ($w=2048$) & $0.784 \pm 0.037$ & $0.523 \pm 0.036$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{Metric Divergence}
 
-Figure~\ref{fig:double_descent}C--D displays the divergent behavior of concordance and integrated Brier score across model capacity. Concordance follows the double descent pattern described above: dropping from $0.756 \pm 0.116$ to $0.701 \pm 0.046$ at $w = 16$, then recovering to $0.785 \pm 0.037$ at $w = 2048$.
+The IBS trajectory warrants closer examination. Test IBS increases from $0.448 \pm 0.054$ at $w = 2$ to plateau at approximately $0.523 \pm 0.035$ for $w \geq 16$, and critically, it does not recover in the overparameterized regime. Maximum divergence between the two metrics occurs near $w = 2048$, where concordance has recovered while IBS remains saturated.
 
-The integrated Brier score tells a different story. Test IBS increases from $0.387 \pm 0.124$ at $w = 2$ to plateau at approximately $0.523 \pm 0.035$ for $w \geq 16$, and critically, it does not recover in the overparameterized regime. Maximum divergence between the two metrics occurs near $w = 2048$, where concordance has recovered while IBS remains saturated.
+This plateau reflects a systematic limitation of neural Cox models rather than a numerical artifact. While concordance recovers in the overparameterized regime, IBS does not, suggesting that the Cox partial likelihood objective produces models that rank subjects correctly but fail to estimate well-calibrated survival probabilities. We investigate the mechanism underlying this decoupling in Section~\ref{sec:mechanism}. A practitioner selecting models by concordance alone would observe acceptable discrimination across the capacity range, potentially selecting a model with uninformative survival probability estimates.
 
-This IBS plateau appears to reflect a systematic limitation of neural Cox models rather than a numerical artifact. When neural networks optimize Cox partial likelihood, they learn risk scores that correctly rank subjects but do not correspond to well-calibrated hazard ratios. The Breslow estimator, which converts these risk scores to survival probabilities, produces degenerate predictions when the risk score distribution differs substantially from what a proportional hazards model assumes. Classical baselines (Cox PH, RSF) avoid this issue because they estimate baseline hazards jointly with coefficients under appropriate constraints, whereas neural Cox models optimize rankings without such constraints.
+\subsection{Scenario Robustness}
 
-The key finding is that concordance recovers while IBS saturates. At $w = 2048$, concordance exceeds the $w = 2$ baseline (0.785 versus 0.756), whereas IBS remains at its saturated level. Critically, L2 regularization does not resolve this decoupling: regularized models achieve IBS of $0.523 \pm 0.036$, essentially identical to unregularized models. This confirms that the calibration failure stems from the Cox partial likelihood objective itself, not from optimization pathologies like exploding weights.
+Table~\ref{tab:scenarios_results} summarizes double descent behavior across all five experimental scenarios. The pattern is robust to covariate distribution and ground truth complexity but sensitive to effective sample size.
 
-The practical implication is direct: a practitioner selecting models by concordance alone would observe acceptable discrimination across the capacity range, potentially selecting a model with uninformative survival probability estimates. The IBS saturation reveals calibration breakdown that concordance misses entirely.
+\begin{table}[ht]
+\centering
+\caption{Double descent behavior across scenarios. All values are test C-index (mean $\pm$ standard deviation) across twenty seeds. The threshold ($w=16$) corresponds to the interpolation peak where performance is worst.}
+\label{tab:scenarios_results}
+\begin{tabular}{llccc}
+\toprule
+\textbf{Scenario} & \textbf{Specification} & $w=2$ & $w=16$ & $w=2048$ \\
+\midrule
+A (Baseline) & Gaussian, 30\% cens. & $0.805 \pm 0.035$ & $0.710 \pm 0.051$ & $0.784 \pm 0.037$ \\
+B (Log-normal) & Log-normal covariates & $0.830 \pm 0.131$ & $0.786 \pm 0.044$ & $0.856 \pm 0.034$ \\
+C (Categorical) & 5 features, $K=10$ & $0.509 \pm 0.014$ & $0.520 \pm 0.024$ & $0.522 \pm 0.023$ \\
+D (High cens.) & 90\% censoring & $0.768 \pm 0.100$ & $0.751 \pm 0.096$ & $0.787 \pm 0.073$ \\
+E (Nonlinear) & Interactions + quadratic & $0.790 \pm 0.041$ & $0.711 \pm 0.056$ & $0.787 \pm 0.043$ \\
+\bottomrule
+\end{tabular}
+\end{table}
 
+Scenarios A and E exhibit significant double descent: concordance drops 9--12\% absolute at the interpolation threshold before recovering to baseline levels (Welch's $t$-test comparing $w=2$ vs.\ $w=16$: Scenario A, $t = 6.9$, $p < 0.001$; Scenario E, $t = 5.1$, $p < 0.001$). Scenario B shows a similar pattern, though the high variance at $w=2$ limits statistical power. Scenario E confirms that double descent persists under nonlinear ground truth: the pattern closely matches Scenario A despite the true hazard including interaction ($x_i \cdot x_{i+1}$) and quadratic ($x_i^2$) terms.
+
+Scenario C (categorical features) uses 5 categorical features with 10 levels each, yielding 50 one-hot encoded input features. This scenario shows no double descent: concordance remains flat near $C \approx 0.51$--$0.52$ across all widths, barely exceeding chance performance. With 600 training samples distributed across 50 one-hot features, each category level appears approximately 60 times on average. The sparse representation prevents the network from learning category-specific hazard effects, and neither underparameterized nor overparameterized models achieve meaningful discrimination. This contrasts sharply with the continuous covariate scenarios (A, B, E), where all widths achieve $C > 0.70$.
+
+Scenario D (90\% censoring) shows no significant double descent (Welch's $t$-test, $t = 0.55$, $p = 0.59$), with substantially higher variance ($\sigma \approx 0.10$ vs.\ $0.04$) obscuring the pattern. With only approximately 100 observed events, the effective sample size is ten times smaller than Scenario A, reducing statistical power.
+
+The IBS saturation phenomenon persists across Scenarios A, B, D, and E where neural networks achieve non-trivial discrimination ($C > 0.70$), confirming that calibration failure is intrinsic to Cox partial likelihood optimization rather than an artifact of specific data characteristics. Scenario C is excluded from this conclusion because the near-chance concordance indicates the models failed to learn the underlying hazard structure.
 
 \subsection{Mechanism of Calibration Failure}
+\label{sec:mechanism}
 
 Figure~\ref{fig:mechanism} illustrates why neural Cox models fail at calibration despite achieving reasonable discrimination. Panel A shows that neural networks learn extreme risk scores spanning $[-15, +15]$, while classical Cox PH maintains concentrated scores around zero. Panel B demonstrates that these extreme scores preserve correct rankings across model widths, explaining why C-index remains stable even as risk score distributions change dramatically. Panel C reveals the consequence: the Breslow estimator, which converts risk scores to survival probabilities, produces degenerate predictions (flat or step functions) when risk scores are extreme. Classical Cox PH avoids this failure by jointly estimating baseline hazards with coefficients under appropriate constraints, producing well-calibrated survival curves.
 
@@ -277,9 +316,9 @@ This mechanism explains the calibration-discrimination divergence documented in 
 
 Figure~\ref{fig:regularization} compares test concordance across model widths with and without L2 regularization (weight decay $\lambda = 0.01$). Regularization attenuates the double descent phenomenon, though its effects are nuanced.
 
-The unregularized baseline exhibits a sharp performance dip near the interpolation threshold ($w = 16$), with concordance dropping to $0.701 \pm 0.046$. With weight decay, the minimum concordance occurs at $w = 16$ with value $0.736 \pm 0.032$, a difference of approximately 3.5\% absolute at the worst point, though this difference does not reach statistical significance given the variance across seeds. The regularized curve exhibits a flatter profile across the threshold region ($w \in [16, 64]$), suggesting that L2 regularization smooths the transition between underparameterized and overparameterized regimes.
+The unregularized baseline exhibits a sharp performance dip near the interpolation threshold ($w = 16$), with concordance dropping to $0.710 \pm 0.051$. With weight decay, the minimum concordance occurs at $w = 16$ with value $0.736 \pm 0.032$, a difference of $\approx 3.5\,\%$ at the worst point, though this difference does not reach significance (Welch's $t$-test, $t = 1.9$, $p = 0.06$). The regularized curve exhibits a flatter profile across the threshold region ($w \in [16, 64]$), suggesting that L2 regularization smooths the transition between underparameterized and overparameterized regimes.
 
-In the overparameterized regime ($w \geq 128$), both curves stabilize. The shaded region in Figure~\ref{fig:regularization} highlights widths where regularization improves performance. The regularized models achieve $0.763 \pm 0.042$ at $w = 2048$, compared to $0.785 \pm 0.037$ for unregularized models. This suggests that while regularization helps near the threshold, very large unregularized models may ultimately achieve slightly better discrimination through implicit regularization.
+In the overparameterized regime ($w \geq 128$), both curves stabilize. The shaded region in Figure~\ref{fig:regularization} highlights widths where regularization improves performance. The regularized models achieve $0.763 \pm 0.042$ at $w = 2048$, compared to $0.784 \pm 0.037$ for unregularized models. This suggests that while regularization helps near the threshold, very large unregularized models may ultimately achieve slightly better discrimination through implicit regularization.
 
 These results partially align with theoretical accounts of double descent \citep{belkin2019reconciling}. Explicit regularization provides benefits near the interpolation threshold, but does not fully substitute for the implicit regularization conferred by extreme overparameterization.
 
@@ -302,9 +341,9 @@ Our experiments confirm that double descent occurs in survival analysis under Co
 
 \citet{liu2025understanding} provide theoretical analysis of double descent in survival models, and our empirical findings both confirm and extend their predictions. Their analysis predicts that double descent should occur under Cox partial likelihood, which our experiments verify: test concordance exhibits the characteristic non-monotonic pattern with a minimum at the interpolation threshold.
 
-Two of their key predictions align with our observations. First, they suggest that the second descent may be attenuated relative to classification settings because the Cox loss optimizes rankings rather than point predictions. Our results show concordance recovers from 0.701 to 0.785, exceeding the baseline of 0.756 observed at $w = 2$. This complete recovery is somewhat surprising given theoretical predictions of attenuation. Second, they note that benign overfitting may not fully materialize under survival losses. While discrimination does recover fully, our experiments reveal a different failure mode: calibration (as measured by IBS) fails entirely in the overparameterized regime, even as discrimination recovers.
+Two of their key predictions align with our observations. First, they suggest that double descent should manifest in survival losses, which we confirm: concordance drops significantly at the interpolation threshold ($p < 0.001$) before recovering. Second, they predict that the second descent may be attenuated relative to classification settings. Our data neither confirms nor refutes this prediction: while concordance recovers from 0.710 to 0.784, this recovered value is not significantly different from the baseline of 0.805 (Welch's $t$-test, $p = 0.07$).
 
-One observation extends beyond their theoretical framework. \citet{liu2025understanding} do not distinguish between discrimination and calibration metrics, treating generalization error as a unified quantity. Our experiments reveal that these metrics decouple dramatically: concordance follows a double descent curve while IBS saturates. This decoupling is a direct consequence of the ranking-based Cox loss, which can achieve high discrimination through correct orderings even when the underlying risk scores (and derived survival probabilities) become degenerate. This finding has practical implications not addressed in the theoretical analysis: concordance-based model selection, standard in survival analysis, may mask calibration failures that affect clinical decision-making.
+One observation extends beyond their theoretical framework. \citet{liu2025understanding} do not distinguish between discrimination and calibration metrics, treating generalization error as a unified quantity. Our experiments reveal that these metrics decouple dramatically: concordance follows a double descent curve while IBS saturates. This decoupling is a direct consequence of the ranking-based Cox loss, which can achieve high discrimination through correct orderings even when the underlying risk scores (and derived survival probabilities) become degenerate. This finding has practical implications not addressed in the theoretical analysis, namely that concordance-based model selection, which is standard in survival analysis, may mask calibration failures that affect clinical decision-making.
 
 \subsection{Clinical Model Selection}
 
@@ -312,7 +351,7 @@ The double descent curve presents a practical challenge for survival model selec
 
 \textit{Avoid the threshold region.} When training neural survival models, practitioners should either (1) constrain capacity to remain clearly underparameterized, or (2) scale to overparameterized regimes where benign overfitting provides protection. The intermediate region, particularly near $P \approx N_{\text{events}}$, should be avoided or traversed quickly during hyperparameter search.
 
-\textit{Account for censoring.} In high-censoring scenarios common to many clinical applications (e.g., rare adverse events, long-term outcomes), the effective sample size is determined by event counts, not total observations. Our experiments with 90\% censoring showed substantially higher variance and an obscured double descent pattern, underscoring the importance of experiments replicated across multiple random seeds and larger sample sizes when events are rare.
+\textit{Account for censoring.} In high-censoring scenarios common to many clinical applications (e.g., rare adverse events, long-term outcomes), the effective sample size is determined by event counts, not total observations. Our experiments with 90\% censoring (Scenario D) showed substantially higher variance ($\sigma = 0.10$ vs.\ $0.04$), which obscured the double descent pattern: the observed dip was not significant ($p = 0.59$). This underscores the importance of replication across multiple random seeds and larger sample sizes when events are rare.
 
 \textit{Use regularization for discrimination, not calibration.} L2 regularization via weight decay attenuates the concordance dip near the threshold, improving worst-case discrimination by approximately 3.5\% absolute in our experiments. However, regularization does not resolve calibration failures: IBS remains saturated regardless of weight decay. Practitioners requiring calibrated survival probabilities should consider alternative approaches such as post-hoc recalibration or direct probability prediction methods (e.g., DeepHit).
 
@@ -322,11 +361,11 @@ Several limitations constrain the interpretation of our findings. All neural net
 
 Our experiments vary network width while holding depth fixed at two hidden layers. Prior work in classification suggests that width and depth produce similar double descent curves when plotted against total parameter count \citep{nakkiran2021deep}, but whether this equivalence holds under Cox partial likelihood optimization remains untested. Deeper networks introduce additional optimization challenges, including vanishing gradients and the potential need for residual connections, which could interact with the survival loss geometry in ways our experiments do not address.
 
-With twenty random seeds per configuration, the reported standard deviations are substantial (0.031--0.116 for concordance), limiting statistical power to detect small effects and reflecting high variability in individual runs. The claimed regularization benefit of approximately 3.5\% absolute concordance improvement does not reach statistical significance at $\alpha = 0.05$ based on paired testing across seeds.
+With twenty random seeds per configuration, the reported standard deviations are moderate (0.035--0.051 for concordance), limiting statistical power to detect small effects. The claimed regularization benefit of approximately 3.5\% absolute concordance improvement does not reach significance (Welch's $t$-test, $p = 0.06$).
 
-The categorical covariate scenario (Scenario C) uses 10 levels per feature with one-hot encoding. With 1000 samples distributed across 10 levels per feature, each category appears approximately 100 times on average, providing sufficient observations for learning category-specific hazard effects. This configuration is more representative of clinically realistic scenarios such as disease stage or treatment type.
+The categorical covariate scenario (Scenario C) yielded near-chance concordance ($C \approx 0.51$--$0.52$) across all model widths, indicating that the network failed to learn category-specific hazard effects. This negative result likely reflects the sparsity of one-hot encoded categorical data: with 50 binary input features and only 600 training samples, each category level is represented by approximately 60 observations on average. The lack of discrimination prevents any conclusion about whether double descent would occur in categorical survival settings with larger sample sizes or different encoding strategies (e.g., entity embeddings).
 
-To address concerns that our linear ground truth may represent a ``straw man'' for neural networks, we conducted additional experiments with nonlinear data-generating processes. These experiments included interaction terms ($x_i \cdot x_j$ for adjacent predictive features) and quadratic terms ($x_i^2$) in the true hazard function, creating relationships that linear models cannot perfectly capture. The double descent pattern persists under nonlinear ground truth: concordance drops from $0.804 \pm 0.023$ at $w = 2$ to $0.740 \pm 0.036$ at $w = 16$, then recovers to $0.809 \pm 0.026$ at $w = 2048$. Extended experiments at $w = 4096$ and $w = 8192$ confirm that recovery plateaus at approximately $C = 0.81$, matching the underparameterized baseline. Interestingly, Cox PH still achieves strong discrimination ($C = 0.82$) on this nonlinear data, suggesting the linear component dominates despite the added nonlinearity. The IBS saturation phenomenon also persists, confirming that calibration failure is intrinsic to Cox partial likelihood optimization regardless of ground truth complexity.
+To address concerns that our linear ground truth may represent a ``straw man'' for neural networks, we conducted additional experiments with nonlinear data-generating processes (Scenario E). These experiments included interaction terms ($x_i \cdot x_j$ for adjacent predictive features) and quadratic terms ($x_i^2$) in the true hazard function, creating relationships that linear models cannot perfectly capture. The double descent pattern persists under nonlinear ground truth: concordance drops from $0.790 \pm 0.041$ at $w = 2$ to $0.711 \pm 0.056$ at $w = 16$, then recovers to $0.787 \pm 0.043$ at $w = 2048$. Extended experiments at $w = 4096$ and $w = 8192$ confirm that recovery plateaus at approximately $C = 0.79$, matching the baseline. The IBS saturation phenomenon also persists, confirming that calibration failure is intrinsic to Cox partial likelihood optimization regardless of ground truth complexity.
 
 The integrated Brier score for neural networks (approximately 0.52) substantially exceeds that of classical baselines (Cox PH: 0.113, RSF: 0.151), as shown in Table~\ref{tab:baselines}. This gap indicates that survival probability calibration is consistently impaired by Cox partial likelihood optimization, independent of model capacity. Critically, L2 regularization does not resolve this issue: regularized models at $w = 2048$ achieve IBS of $0.522 \pm 0.021$, essentially identical to unregularized models ($0.523 \pm 0.020$). The IBS saturation therefore reflects a systematic limitation of Breslow-based survival probability estimation from Cox models rather than a numerical artifact of exploding weights. Alternative calibration methods, such as post-hoc recalibration or direct survival probability prediction (as in DeepHit), warrant investigation.
 
@@ -335,11 +374,11 @@ The integrated Brier score for neural networks (approximately 0.52) substantiall
 % ----------------------------------------------------------------------------
 \section{Concluding Remarks}
 
-We have demonstrated that double descent, the non-monotonic relationship between model capacity and test error, occurs in neural survival models trained with Cox partial likelihood. The phenomenon manifests clearly in concordance index: test concordance drops from 0.756 to 0.701 at the interpolation threshold before recovering to 0.785 in the overparameterized regime. The integrated Brier score, however, saturates at approximately 0.52 beyond the threshold regardless of model capacity or regularization, revealing a consistent decoupling between discrimination and calibration under Cox optimization.
+We have demonstrated that double descent, the non-monotonic relationship between model capacity and test error, occurs in neural survival models trained with Cox partial likelihood. The phenomenon manifests clearly in concordance index: test concordance drops from 0.805 to 0.710 at the interpolation threshold ($p < 0.001$) before recovering to 0.784 in the overparameterized regime. The integrated Brier score, however, saturates at approximately 0.52 beyond the threshold regardless of model capacity or regularization, revealing a consistent decoupling between discrimination and calibration under Cox optimization.
 
 This calibration failure is the central finding of our study. Neural Cox models achieve discrimination comparable to classical baselines (C-index within 0.05 of Cox PH) but exhibit calibration 4--5 times worse (IBS of 0.52 versus 0.11--0.15). The persistence of this gap under L2 regularization indicates it stems from the Cox partial likelihood objective itself, not from optimization artifacts. Practitioners requiring calibrated survival probabilities should consider alternatives to neural Cox models, such as direct probability prediction methods.
 
-Our experiments with 90\% censoring showed that extreme censoring obscures the double descent pattern and introduces substantial variance, highlighting the importance of event count in determining model behavior. L2 regularization shows a trend toward improved worst-case concordance (approximately 3.5\% absolute, though not statistically significant) but does not address calibration.
+High censoring (Scenario D) increases variance sufficiently to obscure the double descent pattern ($p = 0.59$), and L2 regularization shows a trend toward improved worst-case concordance (approximately 3.5\% absolute, $p = 0.06$) but does not address calibration.
 
 These findings have immediate practical relevance for clinical prognostic modeling. The double descent curve implies that moderate-complexity models may perform worse than either simpler or substantially larger alternatives. More critically, concordance-based model selection (standard practice in survival analysis) will miss the calibration breakdown that affects all neural Cox models regardless of architecture or regularization.
 

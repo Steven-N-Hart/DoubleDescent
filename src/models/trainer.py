@@ -161,7 +161,7 @@ class Trainer:
 
                 # Track best validation metric (using IBS - lower is better)
                 val_ibs = metrics["val"].integrated_brier_score
-                if not math.isnan(val_ibs) and val_ibs < self.state.best_val_metric:
+                if math.isfinite(val_ibs) and val_ibs < self.state.best_val_metric:
                     self.state.best_val_metric = val_ibs
                     self.state.best_epoch = epoch
 

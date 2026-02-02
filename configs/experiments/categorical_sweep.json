@@ -2,17 +2,17 @@
   "$schema": "../schemas/experiment.json",
   "experiment_id": "categorical_001",
   "name": "Categorical Double Descent",
-  "description": "High-cardinality categorical features (5 features with 100 levels), 30% censoring, width sweep",
+  "description": "Categorical features (5 features with 10 levels), 30% censoring, width sweep",
   "seed": 42,
   "data": {
-    "name": "high_cardinality",
-    "description": "High-cardinality categorical features (5 features with 100 levels each) and 30% censoring",
+    "name": "categorical",
+    "description": "Categorical features (5 features with 10 levels each) and 30% censoring",
     "n_samples": 1000,
-    "n_features": 20,
+    "n_features": 50,
     "n_predictive": 10,
     "covariate_type": "categorical",
     "n_categorical_features": 5,
-    "cardinality": 100,
+    "cardinality": 10,
     "censoring_rate": 0.3
   },
   "model": {

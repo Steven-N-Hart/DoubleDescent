@@ -61,29 +61,29 @@ def load_aggregated_data(exp_id: str, outputs_dir: Path):
     baseline_stats = {}
     for model, values in baselines.items():
         if values:
-            c_indices = [v["c_index"] for v in values]
-            ibs_values = [v["ibs"] for v in values]
+            c_indices = [v["c_index"] for v in values if not np.isnan(v["c_index"])]
+            ibs_values = [v["ibs"] for v in values if not np.isnan(v["ibs"])]
 
             baseline_stats[model] = {
-                "c_index_mean": np.mean(c_indices),
-                "c_index_sem": np.std(c_indices) / np.sqrt(len(c_indices)),
-                "ibs_mean": np.mean(ibs_values),
-                "ibs_sem": np.std(ibs_values) / np.sqrt(len(ibs_values)),
+                "c_index_mean": np.mean(c_indices) if c_indices else np.nan,
+                "c_index_sem": np.std(c_indices) / np.sqrt(len(c_indices)) if c_indices else np.nan,
+                "ibs_mean": np.mean(ibs_values) if ibs_values else np.nan,
+                "ibs_sem": np.std(ibs_values) / np.sqrt(len(ibs_values)) if ibs_values else np.nan,
             }
 
     return summary, baseline_stats
 
 
 def figure1_main_finding():
-    """4-panel figure: baselines, double descent, calibration failure, divergence."""
-    print("Generating Figure 1: Main Findings (4-panel)")
+    """3-panel figure: double descent, calibration failure, divergence."""
+    print("Generating Figure 1: Main Findings (3-panel)")
 
     outputs_dir = Path("/home/m087494/PycharmProjects/DoubleDescent/outputs")
     summary, baselines = load_aggregated_data("baseline_001", outputs_dir)
 
-    # Create 2x2 grid with proper spacing
-    fig = plt.figure(figsize=(12, 9))
-    gs = gridspec.GridSpec(2, 2, figure=fig, hspace=0.35, wspace=0.3)
+    # Create 1x3 grid with proper spacing
+    fig = plt.figure(figsize=(12, 4))
+    gs = gridspec.GridSpec(1, 3, figure=fig, wspace=0.25)
 
     widths = summary['width'].values
     c_mean = summary['c_index_mean'].values
@@ -94,142 +94,90 @@ def figure1_main_finding():
     ibs_std = summary['ibs_std'].values
     ibs_sem = ibs_std / np.sqrt(n_seeds)
 
-    # Panel A: Baselines comparison
+    # Panel A: Discrimination double descent
     ax_a = fig.add_subplot(gs[0, 0])
 
-    models = ['Cox PH', 'RSF', 'Neural\n(w=2)', 'Neural\n(w=16)', 'Neural\n(w=2048)']
-    c_vals = [
-        baselines['CoxPH']['c_index_mean'],
-        baselines['RSF']['c_index_mean'],
-        c_mean[0],  # w=2
-        c_mean[4],  # w=16
-        c_mean[-1],  # w=2048
-    ]
-    c_errs = [
-        baselines['CoxPH']['c_index_sem'],
-        baselines['RSF']['c_index_sem'],
-        c_sem[0],
-        c_sem[4],
-        c_sem[-1],
-    ]
-    ibs_vals = [
-        baselines['CoxPH']['ibs_mean'],
-        baselines['RSF']['ibs_mean'],
-        ibs_mean[0],
-        ibs_mean[4],
-        ibs_mean[-1],
-    ]
-    ibs_errs = [
-        baselines['CoxPH']['ibs_sem'],
-        baselines['RSF']['ibs_sem'],
-        ibs_sem[0],
-        ibs_sem[4],
-        ibs_sem[-1],
-    ]
-
-    x = np.arange(len(models))
-    width = 0.35
-
-    bars1 = ax_a.bar(x - width/2, c_vals, width, yerr=c_errs,
-                     label='C-index (higher better)', color='#5dade2', capsize=4)
-    bars2 = ax_a.bar(x + width/2, ibs_vals, width, yerr=ibs_errs,
-                     label='IBS (lower better)', color='#ec7063', capsize=4)
-
-    ax_a.set_ylabel('Performance', fontsize=10)
-    ax_a.set_title('A. Classical Methods Outperform Neural Networks',
-                   fontsize=11, fontweight='bold', pad=10)
-    ax_a.set_xticks(x)
-    ax_a.set_xticklabels(models, fontsize=7, rotation=0)
-    ax_a.legend(loc='lower right', fontsize=7, framealpha=0.95)
-    ax_a.set_ylim(0, 0.9)  # Allow room for C-index values around 0.8
-    ax_a.grid(axis='y', alpha=0.3, linestyle='--')
-    ax_a.spines['top'].set_visible(False)
-    ax_a.spines['right'].set_visible(False)
-
-    # Panel B: Discrimination double descent
-    ax_b = fig.add_subplot(gs[0, 1])
-
-    ax_b.plot(widths, c_mean, 'o-', linewidth=2, markersize=6,
+    ax_a.plot(widths, c_mean, 'o-', linewidth=2, markersize=6,
               color='#3498db', label='Test C-index', zorder=3)
-    ax_b.fill_between(widths, c_mean - c_sem, c_mean + c_sem,
+    ax_a.fill_between(widths, c_mean - c_sem, c_mean + c_sem,
                       alpha=0.25, color='#3498db')
 
     # Mark interpolation threshold
     peak_idx = np.argmin(c_mean)
-    ax_b.axvline(widths[peak_idx], color='gray', linestyle=':',
+    ax_a.axvline(widths[peak_idx], color='gray', linestyle=':',
                  linewidth=1.5, alpha=0.6, label='Threshold')
-    ax_b.scatter([widths[peak_idx]], [c_mean[peak_idx]], s=180,
+    ax_a.scatter([widths[peak_idx]], [c_mean[peak_idx]], s=180,
                 color='#e74c3c', marker='*', edgecolors='black',
                 linewidths=1, zorder=5)
 
     # Add baseline references
     cox_c = baselines['CoxPH']['c_index_mean']
     rsf_c = baselines['RSF']['c_index_mean']
-    ax_b.axhline(cox_c, color='#27ae60', linestyle='--', linewidth=1.5,
+    ax_a.axhline(cox_c, color='#27ae60', linestyle='--', linewidth=1.5,
                  alpha=0.6, label=f'Cox PH ({cox_c:.3f})')
-    ax_b.axhline(rsf_c, color='#8e44ad', linestyle='--', linewidth=1.5,
+    ax_a.axhline(rsf_c, color='#8e44ad', linestyle='--', linewidth=1.5,
                  alpha=0.6, label=f'RSF ({rsf_c:.3f})')
 
-    ax_b.set_xscale('log', base=2)
-    ax_b.set_xlabel('Number of Parameters (log scale)', fontsize=10)
-    ax_b.set_ylabel('Test C-index', fontsize=10)
-    ax_b.set_title('B. Discrimination: Double Descent',
+    ax_a.set_xscale('log', base=2)
+    ax_a.set_xlabel('Number of Parameters (log scale)', fontsize=10)
+    ax_a.set_ylabel('Test C-index', fontsize=10)
+    ax_a.set_title('A. Discrimination: Double Descent',
                    fontsize=11, fontweight='bold', pad=10)
-    ax_b.legend(loc='lower right', fontsize=7, framealpha=0.95, ncol=1)
-    ax_b.grid(True, alpha=0.3, linestyle='--')
+    ax_a.legend(loc='lower right', fontsize=7, framealpha=0.95, ncol=1)
+    ax_a.grid(True, alpha=0.3, linestyle='--')
 
-    # Panel C: Calibration universal failure
-    ax_c = fig.add_subplot(gs[1, 0])
+    # Panel B: Calibration universal failure
+    ax_b = fig.add_subplot(gs[0, 1])
 
-    ax_c.plot(widths, ibs_mean, 'o-', linewidth=2, markersize=6,
+    ax_b.plot(widths, ibs_mean, 'o-', linewidth=2, markersize=6,
               color='#e74c3c', label='Neural Cox', zorder=3)
-    ax_c.fill_between(widths, ibs_mean - ibs_sem, ibs_mean + ibs_sem,
+    ax_b.fill_between(widths, ibs_mean - ibs_sem, ibs_mean + ibs_sem,
                       alpha=0.25, color='#e74c3c')
 
     # Add baseline references
     cox_ibs = baselines['CoxPH']['ibs_mean']
     rsf_ibs = baselines['RSF']['ibs_mean']
-    ax_c.axhline(cox_ibs, color='#27ae60', linestyle='--', linewidth=1.5,
+    ax_b.axhline(cox_ibs, color='#27ae60', linestyle='--', linewidth=1.5,
                  alpha=0.6, label=f'Cox PH ({cox_ibs:.3f})')
-    ax_c.axhline(rsf_ibs, color='#8e44ad', linestyle='--', linewidth=1.5,
+    ax_b.axhline(rsf_ibs, color='#8e44ad', linestyle='--', linewidth=1.5,
                  alpha=0.6, label=f'RSF ({rsf_ibs:.3f})')
 
-    ax_c.set_xscale('log', base=2)
-    ax_c.set_xlabel('Number of Parameters (log scale)', fontsize=10)
-    ax_c.set_ylabel('Test IBS (lower better)', fontsize=10)
-    ax_c.set_title('C. Calibration: Universal Failure',
+    ax_b.set_xscale('log', base=2)
+    ax_b.set_xlabel('Number of Parameters (log scale)', fontsize=10)
+    ax_b.set_ylabel('Test IBS (lower better)', fontsize=10)
+    ax_b.set_title('B. Calibration: Universal Failure',
                    fontsize=11, fontweight='bold', pad=10)
-    ax_c.legend(loc='lower right', fontsize=7, framealpha=0.95)
-    ax_c.grid(True, alpha=0.3, linestyle='--')
-    ax_c.set_ylim(0, 0.6)
+    ax_b.legend(loc='lower right', fontsize=7, framealpha=0.95)
+    ax_b.grid(True, alpha=0.3, linestyle='--')
+    ax_b.set_ylim(0, 0.6)
 
-    # Panel D: Divergence (normalized)
-    ax_d = fig.add_subplot(gs[1, 1])
+    # Panel C: Divergence (normalized)
+    ax_c = fig.add_subplot(gs[0, 2])
 
     # Normalize metrics to [0, 1]
     c_norm = (c_mean - c_mean.min()) / (c_mean.max() - c_mean.min())
     ibs_norm = (ibs_mean - ibs_mean.min()) / (ibs_mean.max() - ibs_mean.min())
     ibs_inverted = 1 - ibs_norm  # Invert so both "up is good"
 
-    ax_d.plot(widths, c_norm, 'o-', linewidth=2, markersize=6,
+    ax_c.plot(widths, c_norm, 'o-', linewidth=2, markersize=6,
               color='#3498db', label='C-index (normalized)', zorder=3)
-    ax_d.plot(widths, ibs_inverted, 's-', linewidth=2, markersize=6,
+    ax_c.plot(widths, ibs_inverted, 's-', linewidth=2, markersize=6,
               color='#e74c3c', label='IBS (normalized, inverted)', zorder=3)
 
     # Shade divergence region
-    ax_d.fill_between(widths, c_norm, ibs_inverted,
+    ax_c.fill_between(widths, c_norm, ibs_inverted,
                       where=(c_norm > ibs_inverted),
                       color='lightcoral', alpha=0.3,
                       label='Divergence region')
 
-    ax_d.set_xscale('log', base=2)
-    ax_d.set_xlabel('Number of Parameters (log scale)', fontsize=10)
-    ax_d.set_ylabel('Normalized Performance', fontsize=10)
-    ax_d.set_title('D. Discrimination Recovers, Calibration Does Not',
+    ax_c.set_xscale('log', base=2)
+    ax_c.set_xlabel('Number of Parameters (log scale)', fontsize=10)
+    ax_c.set_ylabel('Normalized Performance', fontsize=10)
+    ax_c.set_title('C. Discrimination Recovers, Calibration Does Not',
                    fontsize=11, fontweight='bold', pad=10)
-    ax_d.legend(loc='upper right', fontsize=7, framealpha=0.95)
-    ax_d.grid(True, alpha=0.3, linestyle='--')
-    ax_d.set_ylim(-0.1, 1.1)
+    ax_c.legend(loc='upper right', fontsize=7, framealpha=0.95)
+    ax_c.grid(True, alpha=0.3, linestyle='--')
+    ax_c.set_ylim(-0.1, 1.1)
 
     # Save
     output_dir = Path("/home/m087494/PycharmProjects/DoubleDescent/manuscript/figures")

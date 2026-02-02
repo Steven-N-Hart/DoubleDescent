@@ -265,8 +265,9 @@ class ExperimentRunner:
                 success = False
             else:
                 run.complete(epochs=state.epoch, best_epoch=state.best_epoch)
+                ibs_str = f"{state.best_val_metric:.4f}" if state.best_val_metric < float("inf") else "N/A"
                 self._log(f"  Completed: {state.epoch} epochs, "
-                          f"best val IBS={state.best_val_metric:.4f}")
+                          f"best val IBS={ibs_str}")
                 success = True
 
                 # Save best model
