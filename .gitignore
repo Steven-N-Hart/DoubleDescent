@@ -231,3 +231,9 @@ checkpoints/
 
 # Generated data
 *.npz
+
+# Claude / AI tooling
+.claude/
+.specify/
+specs/
+CLAUDE.md
