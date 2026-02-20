@@ -203,7 +203,8 @@ def figure2_mechanism():
     # Panel A: Risk score distributions
     ax_a = fig.add_subplot(gs[0, 0])
 
-    # Simulate risk score distributions
+    # Schematic risk score distributions (illustrative, not sampled from experiment)
+    # Small-width models (w<=16): scores somewhat spread; large-width (w>=512): bimodal, extreme
     np.random.seed(42)
     cox_scores = np.random.normal(0, 1.5, 1000)
     neural_constrained = np.random.normal(0, 4, 1000)
@@ -213,12 +214,16 @@ def figure2_mechanism():
         np.random.uniform(-15, 15, 200)
     ])
 
-    ax_a.hist(cox_scores, bins=40, alpha=0.7, color='#27ae60',
-              label='Cox PH (concentrated)', density=True, edgecolor='black', linewidth=0.5)
-    ax_a.hist(neural_constrained, bins=40, alpha=0.5, color='#9b59b6',
-              label='Neural (small widths)', density=True, edgecolor='black', linewidth=0.5)
-    ax_a.hist(neural_extreme, bins=40, alpha=0.5, color='#e74c3c',
-              label='Neural (large widths)', density=True, edgecolor='black', linewidth=0.5)
+    # Use step histograms to avoid alpha-blended overlap regions creating a spurious 4th color
+    ax_a.hist(cox_scores, bins=40, color='#3498db',
+              label='Cox PH (schematic)', density=True,
+              histtype='stepfilled', alpha=0.6, edgecolor='#2980b9', linewidth=1.0)
+    ax_a.hist(neural_constrained, bins=40, color='#9b59b6',
+              label=r'Neural, $w \leq 16$ (schematic)', density=True,
+              histtype='step', linewidth=1.5)
+    ax_a.hist(neural_extreme, bins=40, color='#e74c3c',
+              label=r'Neural, $w \geq 512$ (schematic)', density=True,
+              histtype='step', linewidth=1.5)
 
     ax_a.set_xlabel('Risk Score (η)', fontsize=10)
     ax_a.set_ylabel('Density', fontsize=10)
@@ -236,12 +241,11 @@ def figure2_mechanism():
     width_labels = [f'$2^{int(np.log2(w))}$' for w in [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]]
     risk_ranges = [5, 8, 12, 25, 22, 18, 16, 15, 14, 14, 13]  # Simulated
 
-    color_map = plt.cm.RdYlGn_r(np.linspace(0.2, 0.8, len(width_labels)))
-
     ax_b_twin = ax_b.twinx()
 
-    bars = ax_b.bar(range(len(width_labels)), risk_ranges, color=color_map,
-                    edgecolor='black', linewidth=0.5, alpha=0.7)
+    bars = ax_b.bar(range(len(width_labels)), risk_ranges, color='#95a5a6',
+                    edgecolor='black', linewidth=0.5, alpha=0.7,
+                    label='Risk score range')
     ax_b.set_ylabel('Risk Score Range (max - min)', fontsize=10, color='#e74c3c')
     ax_b.tick_params(axis='y', labelcolor='#e74c3c')
 
@@ -268,15 +272,17 @@ def figure2_mechanism():
     neural_high = np.ones_like(time) * 0.01  # Degenerate (flat near 0)
     neural_low = np.ones_like(time) * 0.99   # Degenerate (flat near 1)
 
-    ax_c.plot(time, cox_high, linewidth=2.5, color='#27ae60',
+    # Blue = Cox PH (well-calibrated), Red = Neural Cox (degenerate)
+    # Solid = high risk (above-median), Dashed = low risk (below-median)
+    ax_c.plot(time, cox_high, linewidth=2.5, color='#3498db',
               label='Cox PH (high risk)', linestyle='-')
-    ax_c.plot(time, cox_low, linewidth=2.5, color='#27ae60',
-              label='Cox PH (low risk)', linestyle='--', alpha=0.7)
+    ax_c.plot(time, cox_low, linewidth=2.5, color='#3498db',
+              label='Cox PH (low risk)', linestyle='--', alpha=0.8)
 
     ax_c.plot(time, neural_high, linewidth=2.5, color='#e74c3c',
-              label='Neural (high risk)', linestyle='-')
-    ax_c.plot(time, neural_low, linewidth=2.5, color='#3498db',
-              label='Neural (low risk)', linestyle='-')
+              label=r'Neural ($\hat{S} \approx 0$, high $\hat{\eta}$)', linestyle='-')
+    ax_c.plot(time, neural_low, linewidth=2.5, color='#e74c3c',
+              label=r'Neural ($\hat{S} \approx 1$, low $\hat{\eta}$)', linestyle='--')
 
     ax_c.set_xlabel('Time', fontsize=10)
     ax_c.set_ylabel('Survival Probability', fontsize=10)
@@ -342,9 +348,9 @@ def figure3_regularization():
                       alpha=0.2, color='#e74c3c')
 
     ax_a.plot(widths_reg, c_reg, 's-', linewidth=2.5, markersize=7,
-              color='#2ecc71', label='L2 (λ=0.01)', zorder=3)
+              color='#3498db', label=r'L2 ($\lambda=0.01$)', zorder=3)
     ax_a.fill_between(widths_reg, c_reg - c_reg_sem, c_reg + c_reg_sem,
-                      alpha=0.2, color='#2ecc71')
+                      alpha=0.2, color='#3498db')
 
     # Mark peaks
     peak_unreg = np.argmin(c_unreg)
@@ -353,17 +359,19 @@ def figure3_regularization():
                 color='#e74c3c', marker='*', edgecolors='black',
                 linewidths=1, zorder=5)
     ax_a.scatter([widths_reg[peak_reg]], [c_reg[peak_reg]], s=180,
-                color='#2ecc71', marker='*', edgecolors='black',
+                color='#3498db', marker='*', edgecolors='black',
                 linewidths=1, zorder=5)
 
-    # Shade region where regularization helps
+    # Shade region where regularization helps; interpolate=True fixes boundary
+    # clipping on the log x-axis so the shaded region reaches the exact crossing point
     improvement = c_reg - c_unreg
     improvement_region = improvement > 0
     if np.any(improvement_region):
         ax_a.fill_between(widths_unreg, c_unreg, c_reg,
                           where=improvement_region,
-                          color='lightgreen', alpha=0.3,
-                          label='Regularization helps')
+                          interpolate=True,
+                          color='#f39c12', alpha=0.45,
+                          label='L2 improves concordance', zorder=2)
 
     ax_a.set_xscale('log', base=2)
     ax_a.set_xlabel('Number of Parameters (log scale)', fontsize=10)
@@ -382,9 +390,9 @@ def figure3_regularization():
                       alpha=0.2, color='#e74c3c')
 
     ax_b.plot(widths_reg, ibs_reg, 's-', linewidth=2.5, markersize=7,
-              color='#2ecc71', label='L2 (λ=0.01)', zorder=3)
+              color='#3498db', label=r'L2 ($\lambda=0.01$)', zorder=3)
     ax_b.fill_between(widths_reg, ibs_reg - ibs_reg_sem, ibs_reg + ibs_reg_sem,
-                      alpha=0.2, color='#2ecc71')
+                      alpha=0.2, color='#3498db')
 
     ax_b.set_xscale('log', base=2)
     ax_b.set_xlabel('Number of Parameters (log scale)', fontsize=10)
