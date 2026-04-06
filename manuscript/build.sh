@@ -6,13 +6,15 @@ set -e
 
 cd "$(dirname "$0")"
 
-echo "Compiling LaTeX document..."
-pdflatex -interaction=nonstopmode main.tex > /dev/null
-bibtex main > /dev/null 2>&1 || true
-pdflatex -interaction=nonstopmode main.tex > /dev/null
-pdflatex -interaction=nonstopmode main.tex > /dev/null
+for doc in main revision_notes; do
+  echo "Compiling ${doc}.tex..."
+  pdflatex -interaction=nonstopmode "${doc}.tex" > /dev/null
+  bibtex "$doc" > /dev/null 2>&1 || true
+  pdflatex -interaction=nonstopmode "${doc}.tex" > /dev/null
+  pdflatex -interaction=nonstopmode "${doc}.tex" > /dev/null
 
-echo "Cleaning up intermediate files..."
-rm -f main.aux main.bbl main.blg main.log main.out main.toc main.lof main.lot main.nav main.snm main.vrb
-
-echo "Done! Output: main.pdf"
+  echo "Cleaning up intermediate files for ${doc}..."
+  rm -f "${doc}".{aux,bbl,blg,log,out,toc,lof,lot,nav,snm,vrb}
+  echo "Done! Output: ${doc}.pdf"
+  echo ""
+done

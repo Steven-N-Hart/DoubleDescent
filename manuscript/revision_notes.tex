@@ -191,11 +191,11 @@ Scenario~A, confirming robustness to mixed covariate types.
 datasets:
 
 \begin{itemize}
-\item \textbf{METABRIC} \citep{curtis2012genomic}: approximately 1,980
-breast cancer patients with $\sim$58\% events and 9 clinical features.
+\item \textbf{METABRIC} \citep{curtis2012genomic}: 1,904
+breast cancer patients with 58\% events and 9 clinical features.
 
-\item \textbf{SUPPORT} \citep{knaus1995support}: approximately 8,870
-critically ill patients with $\sim$68\% events and 14 clinical features.
+\item \textbf{SUPPORT} \citep{knaus1995support}: 8,873
+critically ill patients with 68\% events and 14 clinical features.
 \end{itemize}
 
 For each dataset, we perform the same width sweep as in the synthetic
@@ -210,6 +210,14 @@ RSF: 0.643) than any neural network configuration. The concordance double
 descent is less pronounced than in the synthetic setting, but the
 calibration-discrimination decoupling, our central finding, reproduces
 clearly: IBS saturates while concordance continues to vary.
+
+On SUPPORT ($N = 8{,}873$, 68\% events, 14 features), the pattern is
+qualitatively similar despite the larger sample size and different clinical
+domain. C-index peaks at $0.589 \pm 0.004$ at $w = 4$, drops to
+$0.540 \pm 0.007$ at $w = 64$, and partially recovers to $0.564 \pm 0.003$
+at $w = 2048$. IBS saturates at approximately 0.497 for $w \geq 32$, a value
+close to chance-level calibration. As on METABRIC, classical baselines
+outperform all neural configurations (Cox PH: 0.572, RSF: 0.607).
 
 
 \bigskip
@@ -439,8 +447,8 @@ interpolation threshold and verify it against known ground truth. We
 therefore generate synthetic survival data for the primary analysis and
 validate key findings on real-world datasets.''
 
-On METABRIC, the calibration-discrimination decoupling reproduces clearly:
-IBS saturates at approximately 0.385 while C-index continues to vary across
+On both METABRIC and SUPPORT, the calibration-discrimination decoupling
+reproduces clearly: IBS saturates while C-index continues to vary across
 widths. The concordance double descent is less pronounced than in the
 synthetic setting, consistent with the richer and noisier structure of
 clinical data.
