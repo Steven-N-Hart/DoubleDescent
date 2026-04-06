@@ -140,6 +140,16 @@ def _calculate_ibs_sksurv(
         estimate[:, i] = survival_functions[:, idx]
 
     try:
+        # sksurv requires all test times <= max training time
+        max_train_time = event_times_train.max()
+        valid_mask = event_times_test <= max_train_time
+        if valid_mask.sum() < len(valid_mask):
+            test_struct = test_struct[valid_mask]
+            estimate = estimate[valid_mask]
+
+        if len(test_struct) == 0:
+            return np.nan
+
         ibs = sksurv_ibs(train_struct, test_struct, estimate, times)
         return ibs
     except Exception:

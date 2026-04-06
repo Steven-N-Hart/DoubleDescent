@@ -220,6 +220,11 @@ manuscript/*.out
 manuscript/*.log
 manuscript/*.synctex.gz
 
+# Cover letter
+manuscript/cover_letter.tex
+manuscript/cover_letter.pdf
+manuscript/main.docx
+
 # TensorBoard logs
 tensorboard/
 *.tfevents.*

@@ -1,0 +1,36 @@
+{
+  "$schema": "../schemas/experiment.json",
+  "experiment_id": "mixed_001",
+  "name": "Mixed Covariates Double Descent",
+  "description": "Mixed continuous + categorical covariates, 30% censoring, width sweep (Revision R2.5)",
+  "seed": 42,
+  "data": {
+    "name": "mixed",
+    "description": "10 continuous Gaussian + 3 categorical (K=5) features, 30% censoring",
+    "n_samples": 1000,
+    "n_features": 10,
+    "n_predictive": 5,
+    "covariate_type": "mixed",
+    "n_categorical_features": 3,
+    "cardinality": 5,
+    "censoring_rate": 0.3
+  },
+  "model": {
+    "widths": [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048],
+    "depths": [2],
+    "activation": "relu",
+    "dropout": 0.0,
+    "weight_decay": 0.0
+  },
+  "training": {
+    "epochs": 10000,
+    "batch_size": 256,
+    "learning_rate": 0.001,
+    "optimizer": "adam"
+  },
+  "splits": {
+    "train": 0.6,
+    "val": 0.2,
+    "test": 0.2
+  }
+}

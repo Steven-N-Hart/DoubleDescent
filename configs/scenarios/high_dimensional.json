@@ -1,0 +1,13 @@
+{
+  "$schema": "../schemas/scenario.json",
+  "name": "high_dimensional",
+  "description": "High-dimensional Gaussian covariates (50 features, 25 predictive) with 30% censoring",
+  "n_samples": 1000,
+  "n_features": 50,
+  "n_predictive": 25,
+  "covariate_type": "gaussian",
+  "censoring_rate": 0.3,
+  "weibull_scale": 0.5,
+  "weibull_shape": 2.0,
+  "coefficient_range": [-1.0, 1.0]
+}

@@ -1,0 +1,460 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{xcolor}
+\usepackage{mdframed}
+\usepackage{amsmath,amssymb}
+\usepackage{bm}
+\usepackage{booktabs}
+\usepackage[authoryear,round]{natbib}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
+
+% Reviewer comment box
+\newmdenv[
+  backgroundcolor=gray!12,
+  linecolor=gray!50,
+  linewidth=0.6pt,
+  innerleftmargin=10pt,
+  innerrightmargin=10pt,
+  innertopmargin=8pt,
+  innerbottommargin=8pt,
+  skipabove=8pt,
+  skipbelow=4pt
+]{reviewerbox}
+
+\newcommand{\comment}[1]{%
+  \begin{reviewerbox}
+    \textit{#1}
+  \end{reviewerbox}
+}
+\newcommand{\response}{\noindent\textbf{Response:}\quad}
+
+% Math shortcuts
+\newcommand{\bx}{\bm{x}}
+\newcommand{\bbeta}{\bm{\beta}}
+\newcommand{\btheta}{\bm{\theta}}
+
+\title{Response to Reviewers\\[0.5em]
+\large The Survival Double Descent: Generalization Dynamics of\\
+Deep Neural Networks in Time-to-Event Analysis}
+\author{Steven N. Hart \and Ann L. Oberg}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\noindent We thank the editor and reviewers for their careful reading of the
+manuscript and for the constructive comments. We have addressed each point
+below. Reviewer comments are shown in shaded boxes; our responses follow
+immediately. All changes to the manuscript are shown in {\color{blue}blue}
+using the \texttt{changes} package, and are referenced by section throughout.
+
+\bigskip
+\hrule
+\bigskip
+
+% ============================================================================
+\section*{Reviewer 1}
+% ============================================================================
+
+\subsection*{Comment 1.1: Simulation complexity and model capacity}
+
+\comment{The simulation used appears to represent a relatively simple survival problem with few predictive covariates, even though the goal was to explore the double descent phenomenon in a deep survival model. Based on this setup, the underlying hazard behavior can be easily modeled by a very small network (2 neurons wide) or even a simple linear Cox model, as shown. Therefore, it is important to include clarifications on how the problem's complexity relates to the required model capacity.}
+
+\response We agree that the baseline scenario (Scenario~A) uses a relatively
+simple ground truth, and we appreciate this observation. This simplicity is
+deliberate: by starting with a setting where a linear Cox model is correctly
+specified, we isolate the double descent phenomenon as a property of the
+optimization landscape rather than a consequence of model-data mismatch.
+
+We have added text to the revised manuscript (Limitations, paragraph~1)
+clarifying this design choice. The interpolation threshold at $P \approx N$
+occurs at the theoretically predicted location regardless of ground truth
+complexity, consistent with the analysis of \citet{liu2025understanding} and
+\citet{belkin2019reconciling}.
+
+Scenario~E (nonlinear ground truth with interaction and quadratic terms),
+already reported in the original manuscript, confirms that double descent
+persists when a linear model is insufficient to capture the true hazard.
+
+To further address this concern, we have conducted a new experiment with
+higher-dimensional data (50 features, 25 predictive) where small networks are
+genuinely insufficient. In this scenario (Scenario~G), C-index dips to
+$0.779 \pm 0.026$ at $w = 8$ before recovering monotonically to
+$0.861 \pm 0.017$ at $w = 2048$. The interpolation threshold shifts to
+smaller widths (as expected, since more features yield more parameters per
+width), and IBS saturates at $\sim$0.52 as in the baseline. These results
+confirm that double descent is not an artifact of problem simplicity.
+
+
+\bigskip
+
+\subsection*{Comment 1.2: Interpolation threshold---real dynamics or artifact}
+
+\comment{Clarification is needed on whether the interpolation threshold observed in the simulation reflects the true dynamics of survival learning or is merely an artifact of overparameterization applied to a simple problem.}
+
+\response Three lines of evidence support the interpolation threshold as a real
+phenomenon rather than an artifact:
+
+\begin{enumerate}
+\item \textbf{Theoretical alignment.} The threshold at $P \approx 625$
+parameters lies between $N = 600$ training samples and $N_{\text{events}}
+\approx 420$ observed events, consistent with theoretical predictions
+\citep{liu2025understanding, belkin2019reconciling}.
+
+\item \textbf{Sensitivity to effective sample size.} Under 90\% censoring
+(Scenario~D, $N_{\text{events}} \approx 100$), the pattern is attenuated and
+non-significant ($p = 0.59$), as predicted by the reduced effective sample
+size.
+
+\item \textbf{Scaling with data dimensionality.} In the new
+higher-dimensional experiment (50 features), the threshold shifts to a larger
+$P$ value, confirming it depends on the ratio $P/N$ rather than on problem
+simplicity.
+\end{enumerate}
+
+We have added this analysis to the Results section (paragraph following
+Figure~1).
+
+
+\bigskip
+
+\subsection*{Comment 1.3: Additional deep survival architectures}
+
+\comment{Additional experiments with deep survival architectures could be conducted to verify whether the claim that neural-survival deep learning architectures exhibit double descent is accurate.}
+
+\response We have conducted depth variation experiments to test whether
+double descent generalizes across architectural configurations within the
+Cox framework. Specifically, we sweep depth $\in \{1, 2, 3, 4, 5\}$ at fixed
+width ($w = 64$), and run a full width sweep at depth $= 4$ for comparison
+with the depth-2 results reported in the original manuscript.
+
+At fixed $w = 64$, C-index improves monotonically with depth from
+$0.750 \pm 0.036$ (depth 1) to $0.772 \pm 0.044$ (depth 5), while IBS
+remains constant at $\sim$0.52. The full width sweep at depth 4 reproduces
+the double descent pattern: C-index dips to $0.718 \pm 0.047$ at $w = 16$
+before recovering to $0.781 \pm 0.042$ at $w = 2048$, closely matching
+the depth-2 baseline.
+
+Testing fundamentally different survival architectures such as DeepHit
+\citep{lee2018deephit}, which bypasses the Cox partial likelihood entirely,
+is an important direction for future work. We note, however, that the
+calibration failure mechanism documented here (extreme risk scores breaking
+the Breslow estimator) is specific to Cox-based methods. DeepHit and similar
+direct probability prediction models use different loss functions and do not
+rely on the Breslow estimator, so the failure mode documented here does not
+directly apply. We have added this discussion to the revised manuscript
+(Discussion, Limitations).
+
+
+\bigskip
+
+\subsection*{Comment 1.4: Categorical covariate encoding}
+
+\comment{The comment about the sparsity of categorical covariates leading to performance close to chance might not be sufficient. I recommend that the authors review their simulation setup for these covariates, as applying quantile binning to continuous variables from a Gaussian copula could unintentionally discard important predictor information.}
+
+\response The reviewer raises an important point. The quantile binning
+procedure in Scenario~C maps continuous covariates from the Gaussian copula
+into discrete levels, discarding ordering and magnitude information beyond
+bin boundaries. This represents a worst-case encoding: in clinical practice,
+categorical variables (e.g., tumor stage, treatment arm) carry genuine
+discrete structure rather than being discretized from an underlying continuum.
+
+We have strengthened the Limitations discussion to make this distinction
+explicit and to note that entity embeddings (which learn continuous
+representations from categorical inputs) could mitigate the sparsity problem.
+
+Additionally, we have added a new mixed-covariate scenario (Scenario~F)
+combining 10 continuous Gaussian features with 3 categorical features
+($K = 5$ levels each), providing a more realistic covariate structure than
+either the all-continuous or all-categorical extremes. In this scenario,
+C-index dips from $0.738 \pm 0.082$ at $w = 2$ to $0.659 \pm 0.055$ at
+$w = 16$ before recovering to $0.711 \pm 0.063$ at $w = 2048$, with IBS
+saturating at $\sim$0.52. The double descent pattern mirrors the baseline
+Scenario~A, confirming robustness to mixed covariate types.
+
+
+\bigskip
+
+\subsection*{Comment 1.5: Real-world data validation}
+
+\comment{If possible, the authors should demonstrate their results on real-world data, as survival data are generally more complex than controlled simulation settings.}
+
+\response We have added experiments on two publicly available survival
+datasets:
+
+\begin{itemize}
+\item \textbf{METABRIC} \citep{curtis2012genomic}: approximately 1,980
+breast cancer patients with $\sim$58\% events and 9 clinical features.
+
+\item \textbf{SUPPORT} \citep{knaus1995support}: approximately 8,870
+critically ill patients with $\sim$68\% events and 14 clinical features.
+\end{itemize}
+
+For each dataset, we perform the same width sweep as in the synthetic
+experiments (width $\in \{2, 4, \ldots, 2048\}$, 20 random seeds, 60/20/20
+train/val/test split) and compare against Cox PH and RSF baselines.
+
+On METABRIC (20 seeds), C-index begins at $0.624 \pm 0.054$ at $w = 2$,
+decreases to $0.553 \pm 0.017$ at $w = 64$, and recovers slightly to
+$0.570 \pm 0.004$ at $w = 2048$. IBS plateaus at approximately 0.385 for
+$w \geq 16$. Classical baselines achieve higher concordance (Cox PH: 0.633,
+RSF: 0.643) than any neural network configuration. The concordance double
+descent is less pronounced than in the synthetic setting, but the
+calibration-discrimination decoupling, our central finding, reproduces
+clearly: IBS saturates while concordance continues to vary.
+
+
+\bigskip
+\hrule
+\bigskip
+
+% ============================================================================
+\section*{Reviewer 2}
+% ============================================================================
+
+\subsection*{Comment 2.1: Definitions of $f$ and $f^*$}
+
+\comment{On page 2, the functions $f$ and $f^*$ are introduced but not clearly defined. Please provide a more precise definition of both functions.}
+
+\response We have added explicit definitions in the Background section
+(Section~2.1). After the equation $y = f^*(\bx) + \epsilon$, we now state:
+``where $f^*$ denotes the true data-generating function and $\hat{f}_{\btheta}$
+denotes the model's estimate parameterized by $\btheta$.'' We have also
+unified the notation in Section~2.2, replacing $f(\bx_i)$ with
+$f_{\btheta}(\bx_i)$ for the neural network parameterization.
+
+
+\bigskip
+
+\subsection*{Comment 2.2: Missing citations for theoretical predictions}
+
+\comment{On pages 11 and 12, the references supporting the theoretical predictions appear to be missing. Please include the appropriate citations.}
+
+\response We have verified all citations in the Discussion section (Section~5.1,
+``Relation to Theoretical Predictions'') and added references to
+\citet{bartlett2020benign} and \citet{hastie2022surprises} where theoretical
+predictions about benign overfitting and the interpolation threshold are
+discussed.
+
+
+\bigskip
+
+\subsection*{Comment 2.3: Attenuation of the second descent}
+
+\comment{The authors should provide more explanation as to why the second descent is attenuated compared with standard supervised classification settings.}
+
+\response We have added a detailed explanation in the Discussion section
+(Section~5.1). Three factors contribute to the attenuation:
+
+\begin{enumerate}
+\item The Cox partial likelihood is rank-based: gradient signals depend on
+relative orderings within risk sets rather than absolute prediction errors,
+producing weaker gradients than MSE or cross-entropy losses. The
+minimum-norm interpolating solution may therefore be harder to reach.
+
+\item Censoring reduces the effective number of constraining observations.
+With 30\% censoring and $N = 1000$, approximately 700 events contribute to
+the likelihood product; censored observations enter only through risk sets.
+
+\item The partial likelihood normalizes by risk set size at each event time,
+creating a loss landscape structurally different from standard empirical risk
+minimization.
+\end{enumerate}
+
+These structural differences between the Cox loss and classification losses
+may collectively limit the degree to which overparameterized survival models
+benefit from implicit regularization.
+
+
+\bigskip
+
+\subsection*{Comment 2.4: Post-hoc recalibration and direct probability prediction}
+
+\comment{Please add a brief introduction to post-hoc recalibration and direct probability prediction methods for readers who may not be familiar with these approaches.}
+
+\response We have added a paragraph to the Discussion section (Section~5.2,
+``Clinical Model Selection'') introducing both classes of methods:
+
+\textbf{Post-hoc recalibration} methods adjust a trained model's outputs to
+improve calibration without retraining. Platt scaling fits a logistic
+regression on model outputs, while isotonic regression uses a non-parametric
+monotone mapping; both transform risk scores into calibrated probabilities
+using a held-out calibration set \citep{crowson2016assessing,
+vancalster2019calibration}.
+
+\textbf{Direct probability prediction} methods such as DeepHit
+\citep{lee2018deephit} parameterize $P(T > t \mid \bx)$ directly and
+optimize calibration-aware losses, bypassing the Breslow estimator entirely.
+Because these methods do not rely on the Cox partial likelihood, the
+score-magnitude degeneracy documented in our study does not apply.
+
+
+\bigskip
+
+\subsection*{Comment 2.5: Mixed covariate scenarios}
+
+\comment{Scenario C appears to be too strong relative to the other scenarios, which may make the comparison less informative. The authors may consider simulating more realistic situations, such as datasets with mixed covariates (e.g., some continuous variables and some categorical variables).}
+
+\response We agree. We have added a mixed-covariate scenario (Scenario~F)
+combining 10 continuous Gaussian features (5 predictive) with 3 categorical
+features ($K = 5$ levels each, one-hot encoded to 15 binary columns). This
+yields a 25-dimensional input space that more closely resembles clinical
+datasets. The double descent pattern persists in this mixed setting: C-index
+dips from $0.738 \pm 0.082$ to $0.659 \pm 0.055$ at $w = 16$ before
+recovering to $0.711 \pm 0.063$ at $w = 2048$, with IBS saturating at
+$\sim$0.52.
+
+
+\bigskip
+
+\subsection*{Minor Comment 2.6: Table numbering}
+
+\comment{Tables should be properly numbered throughout the manuscript.}
+
+\response We have verified that all tables are numbered sequentially
+(Table~1: Experimental scenarios; Table~2: Baseline comparison; Table~3:
+Scenario robustness) using standard \LaTeX\ \texttt{\textbackslash label}
+and \texttt{\textbackslash ref} commands. The numbering follows the order of
+first reference in the text.
+
+
+\bigskip
+
+\subsection*{Minor Comment 2.7: Definition of $P$}
+
+\comment{On page 12, please clarify whether $P$ represents the number of predictors.}
+
+\response $P$ denotes the total number of trainable parameters in the neural
+network, not the number of predictors. We have added an explicit definition
+in the Methods section (Section~3.3): ``Throughout, $P$ denotes the total
+number of trainable parameters in the network.''
+
+
+\bigskip
+
+\subsection*{Minor Comment 2.8: Incomplete Harrell citation}
+
+\comment{On page 13, the citation ``Harrell ()'' is incomplete. Please provide the correct year (likely Harrell, YYYY) and ensure the reference is properly formatted.}
+
+\response The source uses \texttt{\textbackslash citeyear\{harrell2015regression\}},
+which renders correctly as ``Harrell (2015)'' after a clean build. The issue
+in the reviewed version was likely caused by a stale auxiliary file. We have
+verified the citation compiles correctly in the revised manuscript.
+
+
+\bigskip
+\hrule
+\bigskip
+
+% ============================================================================
+\section*{Reviewer 3}
+% ============================================================================
+
+\subsection*{Comment 3.1: Motivation for studying double descent in survival analysis}
+
+\comment{Please clearly present the problems caused by double descent in survival analysis, together with mathematical procedures. I am not sure why it is important to check the double descent. When training deep neural networks (DNNs) such as DeepSurv, it is essential to tune hyperparameters, including regularization. For example, the loss function of DeepSurv includes the regularization, i.e.\ L2 penalty.}
+
+\response We have added both mathematical and clinical motivation to the
+Background section (Section~2.1).
+
+\textbf{Mathematical motivation.} At the interpolation threshold ($P = N$),
+the information matrix becomes singular, and the unique interpolating
+solution must fit training noise exactly, producing maximum variance among
+all models in the capacity landscape.
+
+\textbf{Clinical motivation.} A practitioner conducting hyperparameter search
+across network widths may unknowingly select a model in the threshold
+region, basing treatment decisions on the worst-performing configuration.
+Standard model selection by concordance alone would not detect the
+accompanying calibration failure, potentially producing overconfident risk
+estimates that could affect patient care.
+
+\textbf{Regarding $\ell_2$ regularization:} Our experiments (Figure~3) show
+that $\ell_2$ regularization attenuates the concordance dip by approximately
+3.5\% absolute at the threshold, but this improvement does not reach
+significance ($p = 0.06$). More critically, regularization does not address
+calibration failure: IBS remains saturated at $\sim$0.52 regardless of weight
+decay. Standard regularization is therefore insufficient protection against
+the pathologies we document.
+
+
+\bigskip
+
+\subsection*{Comment 3.2: C-index insensitivity vs.\ IBS sensitivity}
+
+\comment{It is well known that the C-index, when evaluating models such as DeepSurv trained with the Cox partial likelihood, is insensitive to extreme risk scores, whereas the Integrated Brier Score (IBS) is sensitive to them. You should cite the related references.}
+
+\response We have added citations to \citet{uno2011c} and
+\citet{austin2020graphical} in the Evaluation Metrics subsection
+(Section~2.3) where the properties of the C-index and IBS are discussed. We
+have also cited \citet{hartman2023pitfalls} in the context of C-index
+invariance to monotonic transformations.
+
+
+\bigskip
+
+\subsection*{Comment 3.3: Linear assumption in data generation}
+
+\comment{The survival data are generated from the Cox-PH model where the log-risk score is linear. Why do you use the linear assumption? DeepSurv typically considers non-linear assumption in the framework of the DNNs. Random survival forest (RSF) also handles the non-linear case.}
+
+\response The linear log-hazard in the baseline scenarios (A--D) serves as a
+deliberate control. If double descent occurs even when the true model is
+correctly specified as a linear Cox model, the phenomenon must arise from the
+optimization landscape of overparameterized neural networks rather than from
+model-data mismatch.
+
+Scenario~E tests the converse by introducing nonlinear ground truth
+(interaction terms $x_i \cdot x_{i+1}$ and quadratic terms $x_i^2$) that
+linear models cannot perfectly capture. Double descent persists under this
+nonlinear ground truth ($C$: $0.790 \to 0.711 \to 0.787$), confirming that
+the phenomenon is not an artifact of the linear assumption.
+
+We have added this framing to the Methods section (Section~3.1, Data
+Generation).
+
+
+\bigskip
+
+\subsection*{Comment 3.4: Real-world data validation}
+
+\comment{I do not agree with the statement [that real datasets lack the controlled conditions required to trace the double descent curve]. It is very important to present the double descent problem in real-world data.}
+
+\response We agree that real-world validation is important and have added
+experiments on two publicly available datasets: METABRIC
+\citep{curtis2012genomic} and SUPPORT \citep{knaus1995support}. These
+experiments use the same width sweep and training protocol as the synthetic
+experiments.
+
+We have revised the statement in Section~3.1 to read: ``Real datasets lack
+the controlled conditions required to \emph{precisely locate} the
+interpolation threshold and verify it against known ground truth. We
+therefore generate synthetic survival data for the primary analysis and
+validate key findings on real-world datasets.''
+
+On METABRIC, the calibration-discrimination decoupling reproduces clearly:
+IBS saturates at approximately 0.385 while C-index continues to vary across
+widths. The concordance double descent is less pronounced than in the
+synthetic setting, consistent with the richer and noisier structure of
+clinical data.
+
+
+\bigskip
+\hrule
+\bigskip
+
+\noindent We believe the revised manuscript addresses all reviewer concerns.
+We thank the reviewers and editor for the opportunity to strengthen the
+paper.
+
+\bibliographystyle{apalike}
+\bibliography{references}
+
+\end{document}

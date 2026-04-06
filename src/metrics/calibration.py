@@ -51,8 +51,16 @@ def calibration_slope(
     })
 
     try:
-        cph = CoxPHFitter()
-        cph.fit(df, duration_col='T', event_col='E', formula='risk')
+        # Degenerate risk scores (near-constant) cause ConvergenceWarnings
+        # and division-by-zero in lifelines normalization — suppress since
+        # we fall back to NaN on failure anyway.
+        if np.ptp(risk_scores) < 1e-10:
+            return np.nan
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            cph = CoxPHFitter()
+            cph.fit(df, duration_col='T', event_col='E', formula='risk')
         return cph.params_['risk']
     except Exception:
         return np.nan
