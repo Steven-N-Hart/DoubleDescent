@@ -218,6 +218,14 @@ manuscript/*.bbl
 manuscript/*.blg
 manuscript/*.out
 manuscript/*.log
+manuscript/*.loc
+manuscript/*.soc
+manuscript/*.toc
+manuscript/*.lof
+manuscript/*.lot
+manuscript/*.nav
+manuscript/*.snm
+manuscript/*.vrb
 manuscript/*.synctex.gz
 
 # Cover letter
