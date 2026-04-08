@@ -196,6 +196,7 @@ We consider \added[id=R1]{eight} configurations (Table~\ref{tab:scenarios}). Sce
 \centering
 \caption{Experimental scenarios.}
 \label{tab:scenarios}
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{llll}
 \toprule
 \textbf{Scenario} & \textbf{Covariates} & \textbf{Specification} & \textbf{Target Question} \\
@@ -209,7 +210,8 @@ E & Gaussian & Nonlinear ground truth & Model complexity \\
 \added[id=R1]{G} & \added[id=R1]{High-dimensional} & \added[id=R1]{$n=50$ features, $n_p=25$ predictive} & \added[id=R1]{Problem complexity} \\
 \added[id=R1]{H} & \added[id=R1]{Depth variation} & \added[id=R1]{Depth $\in \{1,\ldots,5\}$ at $w=64$; full sweep at $d=4$} & \added[id=R1]{Architecture depth} \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 \subsection{Models and Training}
@@ -283,9 +285,11 @@ This plateau reflects a systematic limitation of neural Cox models rather than a
 Table~\ref{tab:scenarios_results} summarizes double descent behavior across all five experimental scenarios. The pattern is robust to covariate distribution and ground truth complexity but sensitive to effective sample size.
 
 \begin{table}[ht]
+\singlespacing
 \centering
 \caption{Double descent behavior across scenarios. All values are test C-index (mean $\pm$ standard deviation) across twenty seeds. The threshold ($w=16$) corresponds to the interpolation peak where performance is worst.}
 \label{tab:scenarios_results}
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{llccc}
 \toprule
 \textbf{Scenario} & \textbf{Specification} & $w=2$ & $w=16$ & $w=2048$ \\
@@ -299,7 +303,8 @@ E (Nonlinear) & Interactions + quadratic & $0.790 \pm 0.041$ & $0.711 \pm 0.056$
 \added[id=R1]{G (High-dim.)} & \added[id=R1]{50 features, 25 predictive} & \added[id=R1]{$0.838 \pm 0.083$} & \added[id=R1]{$0.779 \pm 0.026^{\dagger}$} & \added[id=R1]{$0.861 \pm 0.017$} \\
 \added[id=R1]{H (Depth-4)} & \added[id=R1]{Depth-4 width sweep} & \added[id=R1]{$0.695 \pm 0.158$} & \added[id=R1]{$0.718 \pm 0.047$} & \added[id=R1]{$0.781 \pm 0.042$} \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 \added[id=R1]{$^\dagger$ Threshold at $w=8$ for Scenario G; all other scenarios use $w=16$.}

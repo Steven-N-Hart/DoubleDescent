@@ -14,7 +14,7 @@ for doc in main revision_notes; do
   pdflatex -interaction=nonstopmode "${doc}.tex" > /dev/null
 
   echo "Cleaning up intermediate files for ${doc}..."
-  rm -f "${doc}".{aux,bbl,blg,log,out,toc,lof,lot,nav,snm,vrb,loc}
+  rm -f "${doc}".{aux,bbl,blg,log,out,toc,lof,lot,nav,snm,vrb,loc,soc}
   echo "Done! Output: ${doc}.pdf"
   echo ""
 done
