@@ -10,6 +10,20 @@ cd "$(dirname "$0")"
 sed 's/\\usepackage{changes}/\\usepackage[final]{changes}/' main.tex > main_clean.tex
 
 for doc in main revision_notes main_clean; do
+  # Determine the source file (main_clean derives from main.tex)
+  if [ "$doc" = "main_clean" ]; then
+    src="main.tex"
+  else
+    src="${doc}.tex"
+  fi
+
+  # Skip rebuild if PDF is newer than source
+  if [ -f "${doc}.pdf" ] && [ "${doc}.pdf" -nt "$src" ]; then
+    echo "Skipping ${doc} (PDF is up to date)"
+    echo ""
+    continue
+  fi
+
   echo "Compiling ${doc}.tex..."
   pdflatex -interaction=nonstopmode "${doc}.tex" > /dev/null
   bibtex "$doc" > /dev/null 2>&1 || true
