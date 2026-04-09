@@ -250,3 +250,6 @@ checkpoints/
 .specify/
 specs/
 CLAUDE.md
+
+# Generated clean (no-markup) version — derived from main.tex by build.sh
+manuscript/main_clean.tex

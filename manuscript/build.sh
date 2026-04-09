@@ -6,7 +6,10 @@ set -e
 
 cd "$(dirname "$0")"
 
-for doc in main revision_notes; do
+# Generate clean (no markup) version from main.tex
+sed 's/\\usepackage{changes}/\\usepackage[final]{changes}/' main.tex > main_clean.tex
+
+for doc in main revision_notes main_clean; do
   echo "Compiling ${doc}.tex..."
   pdflatex -interaction=nonstopmode "${doc}.tex" > /dev/null
   bibtex "$doc" > /dev/null 2>&1 || true
