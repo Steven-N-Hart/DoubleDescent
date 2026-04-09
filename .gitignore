@@ -252,4 +252,4 @@ specs/
 CLAUDE.md
 
 # Generated clean (no-markup) version — derived from main.tex by build.sh
-manuscript/main_clean.tex
+# manuscript/main_clean.tex  # tracked: manually edited for journal submission

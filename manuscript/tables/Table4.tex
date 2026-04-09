@@ -1,0 +1,38 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage[final]{changes}
+\definechangesauthor[name={Revision}, color=black]{R1}
+
+\begin{document}
+
+\begin{table}[ht]
+\centering
+\caption{Table 4. \added[id=R1]{Real-world validation results on METABRIC and SUPPORT. DeepSurv C-index and IBS at selected widths, with Cox PH and RSF baselines. Values are mean $\pm$ standard deviation across 20 random seeds.}}
+\label{tab:realdata}
+\begin{tabular}{llcc}
+\toprule
+\textbf{Dataset} & \textbf{Model} & \textbf{C-index} & \textbf{IBS} \\
+\midrule
+\multirow{5}{*}{\shortstack[l]{METABRIC\\($N=1{,}904$, $P=9$,\\58\% events)}}
+& Cox PH & $0.633$ & --- \\
+& RSF & $0.643 \pm 0.004$ & --- \\
+& DeepSurv ($w=2$) & $0.624 \pm 0.054$ & $0.266 \pm 0.042$ \\
+& DeepSurv ($w=64$) & $0.553 \pm 0.017$ & $0.385 \pm 0.001$ \\
+& DeepSurv ($w=2048$) & $0.570 \pm 0.004$ & $0.385 \pm 0.000$ \\
+\midrule
+\multirow{5}{*}{\shortstack[l]{SUPPORT\\($N=8{,}873$, $P=14$,\\68\% events)}}
+& Cox PH & $0.572$ & --- \\
+& RSF & $0.607 \pm 0.002$ & --- \\
+& DeepSurv ($w=2$) & $0.577 \pm 0.028$ & $0.307 \pm 0.060$ \\
+& DeepSurv ($w=64$) & $0.540 \pm 0.007$ & $0.497 \pm 0.000$ \\
+& DeepSurv ($w=2048$) & $0.564 \pm 0.003$ & $0.497 \pm 0.000$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}

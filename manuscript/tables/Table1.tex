@@ -1,0 +1,35 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage[final]{changes}
+\definechangesauthor[name={Revision}, color=black]{R1}
+
+\begin{document}
+
+\begin{table}[ht]
+\centering
+\caption{Table 1. Experimental scenarios.}
+\label{tab:scenarios}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+\textbf{Scenario} & \textbf{Covariates} & \textbf{Specification} & \textbf{Target Question} \\
+\midrule
+A & Gaussian & $X \sim \mathcal{N}(0, I)$, 30\% censoring & Baseline curve \\
+B & Log-normal & $X \sim \text{LogNormal}(0, 1)$ & Peak amplitude \\
+C & Categorical & 5 features, $K=10$ levels & Categorical covariates \\
+D & Gaussian & 90\% censoring & Effective $N$ \\
+E & Gaussian & Nonlinear ground truth & Model complexity \\
+\added[id=R1]{F} & \added[id=R1]{Mixed} & \added[id=R1]{10 continuous + 3 categorical ($K=5$)} & \added[id=R1]{Mixed covariate types} \\
+\added[id=R1]{G} & \added[id=R1]{High-dimensional} & \added[id=R1]{$n=50$ features, $n_p=25$ predictive} & \added[id=R1]{Problem complexity} \\
+\added[id=R1]{H} & \added[id=R1]{Depth variation} & \added[id=R1]{Depth $\in \{1,\ldots,5\}$ at $w=64$; full sweep at $d=4$} & \added[id=R1]{Architecture depth} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\end{document}
